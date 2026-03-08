@@ -1,34 +1,29 @@
-# Use PHP 8.4 FPM as base
-FROM php:8.4-fpm
+FROM php:8.4-cli
+
+WORKDIR /var/www
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     git \
-    curl \
+    unzip \
+    libzip-dev \
     libpng-dev \
     libonig-dev \
-    libxml2-dev \
-    zip \
-    unzip \
-    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
+    && docker-php-ext-install pdo_mysql mbstring zip
 
-# Install Composer globally
+# Install composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Set working directory inside container
-WORKDIR /var/www/html
-
-# Copy the entire project
+# Copy project
 COPY . .
 
-# Install PHP dependencies
-RUN composer install --optimize-autoloader --no-dev
+# Install dependencies
+RUN composer install --no-dev --optimize-autoloader
 
-# Set storage & cache permissions
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+# Laravel storage permissions
+RUN chmod -R 777 storage bootstrap/cache
 
-# Expose port (used for artisan serve)
-EXPOSE 9000
+# Expose port
+EXPOSE 8000
 
-# Command to run Laravel
-CMD ["php-fpm"]
+CMD php artisan serve --host=0.0.0.0 --port=$PORT

@@ -116,28 +116,44 @@ Route::middleware(['auth'])->group(function () {
 | ADMIN ROUTES
 |--------------------------------------------------------------------------
 */
-
+// Admin Routes
 Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
 
-    Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
+    // ── Dashboard ──────────────────────────────────────────────────
+    Route::get('/dashboard',    [AdminController::class, 'dashboard'])->name('admin.dashboard');
 
-    Route::get('/users', [AdminController::class, 'users'])->name('admin.users');
-    Route::post('/users/{user}/suspend', [AdminController::class, 'suspendUser'])->name('admin.users.suspend');
-    Route::post('/users/{user}/activate', [AdminController::class, 'activateUser'])->name('admin.users.activate');
+    // ── Users ──────────────────────────────────────────────────────
+    Route::get('/users',                     [AdminController::class, 'users'])->name('admin.users');
+    Route::post('/users/{id}/suspend',       [AdminController::class, 'suspendUser'])->name('admin.users.suspend');
+    Route::post('/users/{id}/activate',      [AdminController::class, 'activateUser'])->name('admin.users.activate');
+    Route::post('/users/{id}/update',        [AdminController::class, 'updateUser'])->name('admin.users.update');
+    Route::post('/users/{id}/update-balance',[AdminController::class, 'updateBalance'])->name('admin.users.update-balance');
+    Route::get('/users/{id}/transactions',   [AdminController::class, 'userTransactions'])->name('admin.users.transactions');
+    Route::post('/users/message',            [AdminController::class, 'sendMessage'])->name('admin.users.message');
+    Route::post('/users/adjust-balance',     [AdminController::class, 'adjustBalance'])->name('admin.users.adjust-balance');
 
-    Route::get('/tasks', [AdminController::class, 'tasks'])->name('admin.tasks');
-    Route::post('/tasks', [AdminController::class, 'createTask'])->name('admin.tasks.create');
-    Route::delete('/tasks/{task}', [AdminController::class, 'deleteTask'])->name('admin.tasks.delete');
+    // ── Investors page ─────────────────────────────────────────────
+    Route::get('/investors',    [AdminController::class, 'investors'])->name('admin.investors');
 
-    Route::get('/withdrawals', [AdminController::class, 'withdrawals'])->name('admin.withdrawals');
-    Route::post('/withdrawals/{transaction}/approve', [AdminController::class, 'approveWithdrawal'])->name('admin.withdrawals.approve');
-    Route::post('/withdrawals/{transaction}/decline', [AdminController::class, 'declineWithdrawal'])->name('admin.withdrawals.decline');
+    // ── Tasks ──────────────────────────────────────────────────────
+    Route::get('/tasks',                [AdminController::class, 'tasks'])->name('admin.tasks');
+    Route::get('/tasks/create',         [AdminController::class, 'createTask'])->name('admin.tasks.create');
+    Route::post('/tasks',               [AdminController::class, 'storeTask'])->name('admin.tasks.store');
+    Route::put('/tasks/{id}',           [AdminController::class, 'updateTask'])->name('admin.tasks.update');
+    Route::patch('/tasks/{id}/toggle',  [AdminController::class, 'toggleTaskStatus'])->name('admin.tasks.toggle');
+    Route::delete('/tasks/{id}',        [AdminController::class, 'deleteTask'])->name('admin.tasks.delete');
 
-    Route::get('/notifications', [AdminController::class, 'notifications'])->name('admin.notifications');
-    Route::post('/notifications', [AdminController::class, 'sendNotification'])->name('admin.notifications.send');
+    // ── Withdrawals ────────────────────────────────────────────────
+    Route::get('/withdrawals',                   [AdminController::class, 'withdrawals'])->name('admin.withdrawals');
+    Route::post('/withdrawals/{id}/approve',     [AdminController::class, 'approveWithdrawal'])->name('admin.withdrawals.approve');
+    Route::post('/withdrawals/{id}/decline',     [AdminController::class, 'declineWithdrawal'])->name('admin.withdrawals.decline');
+
+    // ── Notifications ──────────────────────────────────────────────
+    Route::get('/notifications',         [AdminController::class, 'notifications'])->name('admin.notifications');
+    Route::get('/notifications/create',  [AdminController::class, 'createNotification'])->name('admin.notifications.create');
+    Route::post('/notifications/send',   [AdminController::class, 'sendNotification'])->name('admin.notifications.send');
+
 });
-
-
 /*
 |--------------------------------------------------------------------------
 | NOTIFICATIONS

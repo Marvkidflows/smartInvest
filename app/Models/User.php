@@ -17,6 +17,7 @@ class User extends Authenticatable
     */
 
     protected $fillable = [
+
         // Basic Info
         'name',
         'full_name',
@@ -35,7 +36,7 @@ class User extends Authenticatable
         'registration_stage',
         'registration_completed',
 
-        // KYC
+        // KYC Information
         'id_type',
         'id_number',
         'id_document_path',
@@ -134,16 +135,36 @@ class User extends Authenticatable
     |--------------------------------------------------------------------------
     */
 
+    // User Transactions
     public function transactions()
     {
         return $this->hasMany(Transaction::class);
     }
 
+    // User Investments
+    public function investments()
+    {
+        return $this->hasMany(Investment::class);
+    }
+
+    // Completed Tasks
     public function completedTasks()
     {
         return $this->belongsToMany(Task::class, 'task_completions')
-                    ->withTimestamps()
-                    ->withPivot('completed_at');
+            ->withPivot('completed_at')
+            ->withTimestamps();
+    }
+
+    // Task Completion Records
+    public function taskCompletions()
+    {
+        return $this->hasMany(TaskCompletion::class);
+    }
+
+    // Notifications
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class)->latest();
     }
 
     /*
@@ -155,17 +176,7 @@ class User extends Authenticatable
     public function hasCompletedTask($taskId): bool
     {
         return $this->completedTasks()
-                    ->where('task_id', $taskId)
-                    ->exists();
+            ->where('task_id', $taskId)
+            ->exists();
     }
-
-public function completedTask()
-{
-    return $this->hasMany(TaskCompletion::class);
-}
-
-public function notifications()
-{
-    return $this->hasMany(Notification::class)->latest();
-}
 }

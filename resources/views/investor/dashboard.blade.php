@@ -11,77 +11,147 @@
    ===================================================== */
 
 /* Dashboard Container */
-.modern-dashboard {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 2rem;
-    background: #F8FAFC;
-    min-height: 100vh;
-}
-
-/* Dashboard Header */
-.dashboard-header-modern {
+.dashboard-header-enhanced {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 2.5rem;
-}
-
-.dashboard-title-modern {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #1E3A8A;
-    margin-bottom: 0.5rem;
-    font-family: 'Crimson Pro', serif;
-}
-
-.dashboard-subtitle-modern {
-    color: #64748B;
-    font-size: 1rem;
-}
-
-.header-actions {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-}
-
-.btn-icon {
-    position: relative;
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
+    padding: 2rem;
     background: white;
+    border-radius: 20px;
     border: 1px solid #E5E7EB;
+}
+
+.profile-section {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.profile-avatar-wrapper {
+    position: relative;
+}
+
+.profile-avatar,
+.profile-avatar-placeholder {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.profile-avatar-placeholder {
+    background: linear-gradient(135deg, #2563EB 0%, #1E3A8A 100%);
+    color: white;
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    color: #64748B;
-}
-
-.btn-icon:hover {
-    background: #F3F4F6;
-    border-color: #2563EB;
-    color: #2563EB;
-}
-
-.notification-badge {
-    position: absolute;
-    top: -4px;
-    right: -4px;
-    background: #EF4444;
-    color: white;
-    font-size: 0.75rem;
+    font-size: 1.75rem;
     font-weight: 700;
-    width: 20px;
-    height: 20px;
+}
+
+.avatar-edit-btn {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 32px;
+    height: 32px;
+    background: white;
+    border: 2px solid #2563EB;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 2px solid #F8FAFC;
+    cursor: pointer;
+    color: #2563EB;
+    transition: all 0.2s ease;
+}
+
+.avatar-edit-btn:hover {
+    background: #2563EB;
+    color: white;
+}
+
+.profile-info {
+    flex: 1;
+}
+
+.profile-name-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.profile-name {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1E3A8A;
+    font-family: 'Crimson Pro', serif;
+    margin: 0;
+}
+
+.status-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.status-indicator.active {
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+.status-indicator.inactive {
+    background: #FEE2E2;
+    color: #991B1B;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.profile-email {
+    color: #64748B;
+    font-size: 0.95rem;
+    margin-bottom: 0.25rem;
+}
+
+.profile-date {
+    color: #9CA3AF;
+    font-size: 0.875rem;
+}
+
+.btn-edit-profile {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: white;
+    border: 2px solid #2563EB;
+    border-radius: 10px;
+    color: #2563EB;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-edit-profile:hover {
+    background: #2563EB;
+    color: white;
 }
 
 /* Overview Grid */
@@ -545,6 +615,7 @@
     font-weight: 700;
     color: #1E3A8A;
 }
+
 
 .countdown-progress {
     height: 6px;
@@ -1250,14 +1321,610 @@
         right: -100%;
     }
 }
+/* =====================================================
+   ENHANCED INVESTOR DASHBOARD STYLES
+   Add this to your layouts/styles.blade.php
+   ===================================================== */
 
+/* Enhanced Dashboard Header with Profile */
+.dashboard-header-enhanced {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2.5rem;
+    padding: 2rem;
+    background: white;
+    border-radius: 20px;
+    border: 1px solid #E5E7EB;
+}
+
+.profile-section {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.profile-avatar-wrapper {
+    position: relative;
+}
+
+.profile-avatar,
+.profile-avatar-placeholder {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.profile-avatar-placeholder {
+    background: linear-gradient(135deg, #2563EB 0%, #1E3A8A 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+    font-weight: 700;
+}
+
+.avatar-edit-btn {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 32px;
+    height: 32px;
+    background: white;
+    border: 2px solid #2563EB;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #2563EB;
+    transition: all 0.2s ease;
+}
+
+.avatar-edit-btn:hover {
+    background: #2563EB;
+    color: white;
+}
+
+.profile-info {
+    flex: 1;
+}
+
+.profile-name-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.profile-name {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1E3A8A;
+    font-family: 'Crimson Pro', serif;
+    margin: 0;
+}
+
+.status-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.status-indicator.active {
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+.status-indicator.inactive {
+    background: #FEE2E2;
+    color: #991B1B;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.profile-email {
+    color: #64748B;
+    font-size: 0.95rem;
+    margin-bottom: 0.25rem;
+}
+
+.profile-date {
+    color: #9CA3AF;
+    font-size: 0.875rem;
+}
+
+.btn-edit-profile {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: white;
+    border: 2px solid #2563EB;
+    border-radius: 10px;
+    color: #2563EB;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-edit-profile:hover {
+    background: #2563EB;
+    color: white;
+}
+
+/* Portfolio Chart Card */
+.portfolio-chart-card {
+    background: white;
+    border-radius: 20px;
+    padding: 2.5rem;
+    border: 1px solid #E5E7EB;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.chart-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+}
+
+.chart-card-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1E3A8A;
+    margin-bottom: 0.5rem;
+    font-family: 'Crimson Pro', serif;
+}
+
+.chart-card-subtitle {
+    color: #64748B;
+    font-size: 0.95rem;
+}
+
+.chart-tabs {
+    display: flex;
+    gap: 0.5rem;
+    background: #F8FAFC;
+    padding: 0.375rem;
+    border-radius: 10px;
+}
+
+.chart-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: #64748B;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.chart-tab.active {
+    background: white;
+    color: #2563EB;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.chart-tab:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.portfolio-content {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 3rem;
+}
+
+.chart-container {
+    position: relative;
+    height: 350px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.portfolio-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.breakdown-title {
+    font-weight: 700;
+    color: #1E3A8A;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.asset-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: #F8FAFC;
+    border-radius: 10px;
+    border: 1px solid #E5E7EB;
+    transition: all 0.2s ease;
+}
+
+.asset-item:hover {
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.asset-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.asset-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+}
+
+.asset-name {
+    font-weight: 600;
+    color: #1E3A8A;
+    font-size: 0.95rem;
+}
+
+.asset-stats {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+}
+
+.asset-amount {
+    font-weight: 700;
+    color: #10B981;
+    font-size: 1rem;
+}
+
+.asset-percentage {
+    font-size: 0.875rem;
+    color: #64748B;
+    font-weight: 600;
+}
+
+.portfolio-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1rem;
+    background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+    border-radius: 10px;
+    border: 2px solid #2563EB;
+    margin-top: 0.5rem;
+}
+
+.total-label {
+    font-weight: 700;
+    color: #1E3A8A;
+    font-size: 1rem;
+}
+
+.total-amount {
+    font-weight: 700;
+    color: #2563EB;
+    font-size: 1.5rem;
+    font-family: 'Crimson Pro', serif;
+}
+
+.btn-rebalance {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, #2563EB 0%, #1E3A8A 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 1rem;
+    transition: all 0.2s ease;
+}
+
+.btn-rebalance:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
+}
+
+/* Modals */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal-content-large,
+.modal-content-small {
+    background: white;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-content-small {
+    max-width: 400px;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2rem;
+    border-bottom: 2px solid #F3F4F6;
+}
+
+.modal-header h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1E3A8A;
+    font-family: 'Crimson Pro', serif;
+    margin: 0;
+}
+
+.modal-close {
+    width: 36px;
+    height: 36px;
+    background: #F3F4F6;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    color: #64748B;
+    font-size: 1.5rem;
+    transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+    background: #E5E7EB;
+    color: #EF4444;
+}
+
+.modal-body {
+    padding: 2rem;
+}
+
+.modal-footer {
+    display: flex;
+    gap: 1rem;
+    padding: 2rem;
+    border-top: 2px solid #F3F4F6;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    display: block;
+    font-weight: 600;
+    color: #1E3A8A;
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.form-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid #E5E7EB;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #2563EB;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+.btn-secondary,
+.btn-primary {
+    flex: 1;
+    padding: 0.875rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    font-size: 1rem;
+}
+
+.btn-secondary {
+    background: #F3F4F6;
+    border: 2px solid #E5E7EB;
+    color: #64748B;
+}
+
+.btn-secondary:hover {
+    background: #E5E7EB;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #2563EB 0%, #1E3A8A 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
+}
+
+/* Photo Upload */
+.photo-upload-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.photo-preview {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 4px solid #E5E7EB;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.photo-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.photo-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    color: #9CA3AF;
+}
+
+.photo-placeholder p {
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.btn-upload {
+    padding: 0.75rem 2rem;
+    background: #2563EB;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-upload:hover {
+    background: #1E3A8A;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .portfolio-content {
+        grid-template-columns: 1fr;
+    }
+    
+    .chart-container {
+        height: 300px;
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-header-enhanced {
+        flex-direction: column;
+        padding: 1.5rem;
+    }
+    
+    .profile-section {
+        flex-direction: column;
+        text-align: center;
+        width: 100%;
+    }
+    
+    .btn-edit-profile {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .chart-tabs {
+        flex-direction: column;
+    }
+}
 </style>
 <div class="modern-dashboard">
-    <!-- Dashboard Header -->
-    <div class="dashboard-header-modern">
-        <div>
-            <h1 class="dashboard-title-modern">Welcome back, {{ Auth::user()->full_name ?? Auth::user()->name }}! 👋</h1>
-            <p class="dashboard-subtitle-modern">{{ now()->format('l, F j, Y') }}</p>
+    <div class="dashboard-header-enhanced">
+        <div class="profile-section">
+            <div class="profile-avatar-wrapper">
+                @if(Auth::user()->profile_photo)
+                    <img src="{{ asset('storage/' . Auth::user()->profile_photo) }}" alt="Profile" class="profile-avatar">
+                @else
+                    <div class="profile-avatar-placeholder">
+                        {{ strtoupper(substr(Auth::user()->full_name ?? Auth::user()->name, 0, 2)) }}
+                    </div>
+                @endif
+                <button class="avatar-edit-btn" onclick="openProfilePhotoModal()">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M11.5 2L14 4.5L5 13.5H2.5V11L11.5 2Z" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="profile-info">
+                <div class="profile-name-row">
+                    <h1 class="profile-name">{{ Auth::user()->full_name ?? Auth::user()->name }}</h1>
+                    <span class="status-indicator {{ Auth::user()->status === 'active' ? 'active' : 'inactive' }}">
+                        <span class="status-dot"></span>
+                        {{ ucfirst(Auth::user()->status ?? 'active') }}
+                    </span>
+                </div>
+                <p class="profile-email">{{ Auth::user()->email }}</p>
+                <p class="profile-date">Member since {{ Auth::user()->created_at->format('M d, Y') }}</p>
+            </div>
+            <button class="btn-edit-profile" onclick="openEditProfileModal()">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <path d="M14 2L18 6L6 18H2V14L14 2Z" stroke="currentColor" stroke-width="2"/>
+                </svg>
+                Edit Profile
+            </button>
         </div>
         <div class="header-actions">
             <button class="btn-icon" onclick="toggleNotifications()">
@@ -1347,109 +2014,107 @@
     </div>
 
     <!-- ROI Progress Bar Card (REDESIGNED - CLEAN & PROFESSIONAL) -->
-    <div class="roi-progress-card">
-        <div class="roi-card-header">
+   <!-- Portfolio Distribution Chart (Like Binance) -->
+    <div class="portfolio-chart-card">
+        <div class="chart-card-header">
             <div>
-                <h3 class="roi-card-title">ROI Progress Overview</h3>
-                <p class="roi-card-subtitle">Track your investment returns in real-time</p>
+                <h3 class="chart-card-title">Investment Portfolio Distribution</h3>
+                <p class="chart-card-subtitle">Track your diversified investments across sectors</p>
             </div>
-            <select class="period-selector-modern">
-                <option>This Month</option>
-                <option>Last 30 Days</option>
-                <option>Last 90 Days</option>
-                <option>All Time</option>
-            </select>
-        </div>
-
-        <div class="roi-metrics-grid">
-            <div class="roi-metric">
-                <div class="roi-metric-icon blue-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                        <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                        <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                        <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <div class="chart-tabs">
+                <button class="chart-tab active" onclick="switchChartView('pie')">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                        <circle cx="9" cy="9" r="8" stroke="currentColor" stroke-width="2"/>
+                        <path d="M9 1V9H17" stroke="currentColor" stroke-width="2"/>
                     </svg>
-                </div>
-                <div class="roi-metric-content">
-                    <p class="roi-metric-label">Total Invested</p>
-                    <h3 class="roi-metric-value">${{ number_format($totalInvested ?? 0, 2) }}</h3>
-                </div>
-            </div>
-
-            <div class="roi-metric">
-                <div class="roi-metric-icon green-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                        <path d="M12 2V22M12 2L19 9M12 2L5 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    Pie
+                </button>
+                <button class="chart-tab" onclick="switchChartView('bar')">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                        <rect x="2" y="10" width="3" height="6" fill="currentColor"/>
+                        <rect x="7" y="6" width="3" height="10" fill="currentColor"/>
+                        <rect x="12" y="8" width="3" height="8" fill="currentColor"/>
                     </svg>
-                </div>
-                <div class="roi-metric-content">
-                    <p class="roi-metric-label">Expected ROI</p>
-                    <h3 class="roi-metric-value roi-expected">15.0%</h3>
-                    <span class="roi-amount-small">+${{ number_format(($totalInvested ?? 0) * 0.15, 2) }}</span>
-                </div>
-            </div>
-
-            <div class="roi-metric">
-                <div class="roi-metric-icon gold-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                        <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                </div>
-                <div class="roi-metric-content">
-                    <p class="roi-metric-label">Current ROI</p>
-                    <h3 class="roi-metric-value roi-current">12.5%</h3>
-                    <span class="roi-amount-small">+${{ number_format(($totalInvested ?? 0) * 0.125, 2) }}</span>
-                </div>
-            </div>
-
-            <div class="roi-metric">
-                <div class="roi-metric-icon purple-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                        <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                    </svg>
-                </div>
-                <div class="roi-metric-content">
-                    <p class="roi-metric-label">Remaining</p>
-                    <h3 class="roi-metric-value roi-remaining">2.5%</h3>
-                    <span class="roi-amount-small">+${{ number_format(($totalInvested ?? 0) * 0.025, 2) }}</span>
-                </div>
+                    Bar
+                </button>
             </div>
         </div>
 
-        <div class="roi-progress-wrapper">
-            <div class="roi-progress-info">
-                <span class="roi-progress-label">Progress to Target</span>
-                <span class="roi-progress-percentage">83.3%</span>
+        <div class="portfolio-content">
+            <!-- Chart Canvas -->
+            <div class="chart-container">
+                <canvas id="portfolioChart" width="400" height="300"></canvas>
             </div>
-            <div class="roi-progress-bar-modern">
-                <div class="roi-progress-fill" style="width: 83.3%;">
-                    <span class="roi-progress-marker">12.5%</span>
-                </div>
-                <div class="roi-target-marker" style="left: 100%;">
-                    <span>15%</span>
-                </div>
-            </div>
-            <div class="roi-progress-labels">
-                <span class="roi-start-label">0%</span>
-                <span class="roi-end-label">15% Target</span>
-            </div>
-        </div>
 
-        <div class="roi-status-banner">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <circle cx="10" cy="10" r="9" stroke="#10B981" stroke-width="2"/>
-                <path d="M6 10L9 13L14 7" stroke="#10B981" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-            <span>You're on track to reach your ROI target! Keep up the great work.</span>
+            <!-- Portfolio Breakdown -->
+            <div class="portfolio-breakdown">
+                <h4 class="breakdown-title">Asset Allocation</h4>
+                
+                <div class="asset-item">
+                    <div class="asset-info">
+                        <div class="asset-color" style="background: #2563EB;"></div>
+                        <span class="asset-name">Real Estate Pool</span>
+                    </div>
+                    <div class="asset-stats">
+                        <span class="asset-amount">${{ number_format($portfolioData['real_estate'] ?? 0, 2) }}</span>
+                        <span class="asset-percentage">{{ $totalInvested > 0 ? number_format((($portfolioData['real_estate'] ?? 0) / $totalInvested) * 100, 1) : 0 }}%</span>
+                    </div>
+                </div>
+
+                <div class="asset-item">
+                    <div class="asset-info">
+                        <div class="asset-color" style="background: #10B981;"></div>
+                        <span class="asset-name">Tech Startup</span>
+                    </div>
+                    <div class="asset-stats">
+                        <span class="asset-amount">${{ number_format($portfolioData['tech_startup'] ?? 0, 2) }}</span>
+                        <span class="asset-percentage">{{ $totalInvested > 0 ? number_format((($portfolioData['tech_startup'] ?? 0) / $totalInvested) * 100, 1) : 0 }}%</span>
+                    </div>
+                </div>
+
+                <div class="asset-item">
+                    <div class="asset-info">
+                        <div class="asset-color" style="background: #F59E0B;"></div>
+                        <span class="asset-name">Fixed Digital Asset</span>
+                    </div>
+                    <div class="asset-stats">
+                        <span class="asset-amount">${{ number_format($portfolioData['digital_asset'] ?? 0, 2) }}</span>
+                        <span class="asset-percentage">{{ $totalInvested > 0 ? number_format((($portfolioData['digital_asset'] ?? 0) / $totalInvested) * 100, 1) : 0 }}%</span>
+                    </div>
+                </div>
+
+                <div class="asset-item">
+                    <div class="asset-info">
+                        <div class="asset-color" style="background: #8B5CF6;"></div>
+                        <span class="asset-name">Cash Reserve</span>
+                    </div>
+                    <div class="asset-stats">
+                        <span class="asset-amount">${{ number_format($portfolioData['cash_reserve'] ?? 0, 2) }}</span>
+                        <span class="asset-percentage">{{ $totalInvested > 0 ? number_format((($portfolioData['cash_reserve'] ?? 0) / $totalInvested) * 100, 1) : 0 }}%</span>
+                    </div>
+                </div>
+
+                <div class="portfolio-total">
+                    <span class="total-label">Total Portfolio</span>
+                    <span class="total-amount">${{ number_format($totalInvested ?? 0, 2) }}</span>
+                </div>
+
+                <button class="btn-rebalance">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                        <path d="M14 4L10 8L6 4" stroke="currentColor" stroke-width="2"/>
+                        <path d="M4 14L8 10L12 14" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                    Rebalance Portfolio
+                </button>
+            </div>
         </div>
     </div>
 
     <!-- Investment Countdown Tracker -->
     <div class="dashboard-card-modern">
         <div class="card-header-modern">
-            <h3>Investment Countdown Tracker</h3>
-            <a href="{{ route('investor.investments') }}" class="view-all-link">View All →</a>
+            <h3>Active Investments</h3>
+            <a href="{{ route('investor.plans') }}" class="view-all-link">Invest More →</a>
         </div>
         <div class="countdown-grid">
             @forelse($activeInvestments ?? [] as $investment)
@@ -1492,7 +2157,6 @@
             @endforelse
         </div>
     </div>
-
     <!-- Transaction History -->
     <div class="dashboard-card-modern">
         <div class="card-header-modern">

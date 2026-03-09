@@ -1,3 +1,4 @@
+# Use PHP 8.4 CLI
 FROM php:8.4-cli
 
 # Set working directory
@@ -16,17 +17,21 @@ RUN apt-get update && apt-get install -y \
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Copy Laravel project
+# Copy project files
 COPY . .
 
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Set permissions for Laravel
+# Set storage permissions
 RUN chmod -R 777 storage bootstrap/cache
 
-# Expose port for Render
+# Copy entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Expose port
 EXPOSE 8000
 
-# Start Laravel server
-CMD CMD sh -c "php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=$PORT"
+# Run the entrypoint script
+ENTRYPOINT ["docker-entrypoint.sh"]

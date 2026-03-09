@@ -71,10 +71,6 @@
         Don't have an account? <a href="{{ route('register') }}">Register here</a>
     </div>
 
-    <div style="margin-top: 2rem; padding: 1.5rem; background: var(--bg-primary); border-radius: 12px; border: 2px dashed var(--border);">
-        <p style="font-weight: 700; margin-bottom: 0.5rem; color: var(--primary); font-size: 0.85rem;">Demo Credentials:</p>
-        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Admin: olufidipecovenant@gmail.com / Ifeoluwa27</p>
-        <p style="font-size: 0.85rem; color: var(--text-secondary);">Investor: investor@demo.com / demo123</p>
-    </div>
+    
 </div>
 @endsection

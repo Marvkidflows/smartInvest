@@ -14,8 +14,8 @@ class DemoDataSeeder extends Seeder
         // Create admin
         User::create([
             'name' => 'System Admin',
-            'email' => 'olufidipecovenant@gmail.com',
-            'password' => Hash::make('Ifeoluwa27'),
+            'email' => 'adminsystem@gmail.com',
+            'password' => Hash::make('password@123'),
             'role' => 'admin',
             'tier' => 'admin',
             'balance' => 0,
@@ -28,6 +28,7 @@ class DemoDataSeeder extends Seeder
             'password' => Hash::make('demo123'),
             'role' => 'investor',
             'tier' => 'elite',
+            
             'balance' => 42850.50,
         ]);
 

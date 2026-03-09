@@ -1,5 +1,6 @@
-FROM php:8.4-cli
+FROM php:8.2-cli
 
+# Set working directory
 WORKDIR /var/www
 
 # Install system dependencies
@@ -9,21 +10,23 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     libpng-dev \
     libonig-dev \
-    && docker-php-ext-install pdo_mysql mbstring zip
+    libxml2-dev \
+    && docker-php-ext-install pdo pdo_mysql mbstring zip bcmath
 
-# Install composer
+# Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Copy project
+# Copy Laravel project
 COPY . .
 
-# Install dependencies
+# Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Laravel storage permissions
+# Set permissions for Laravel
 RUN chmod -R 777 storage bootstrap/cache
 
-# Expose port
+# Expose port for Render
 EXPOSE 8000
 
-CMD php artisan serve --host=0.0.0.0 --port=$PORT
+# Start Laravel server
+CMD ["sh", "-c", "php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"]

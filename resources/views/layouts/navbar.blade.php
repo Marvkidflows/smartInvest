@@ -1,7 +1,7 @@
 <nav class="navbar">
     <div class="nav-container">
         <!-- Logo -->
-        <a href="{{ Auth::check() ? (Auth::user()->role === 'admin' ? route('admin.dashboard') : route('investor.dashboard')) : route('home') }}" class="logo">
+        <a href="{{ Auth::check() ? (Auth::user()->role === 'admin' ? route('admin.dashboard') : route('investor-investment.dashboard')) : route('home') }}" class="logo">
             Smart<span>System</span>
         </a>
         
@@ -22,13 +22,18 @@
         @else
             <!-- Authenticated User Navigation -->
             <div class="nav-buttons" style="display: flex; align-items: center; gap: 2rem;">
-                <div class="notification-badge" onclick="toggleNotifications()" style="position: relative; cursor: pointer;">
-                    <span style="font-size: 1.5rem;">🔔</span>
-                    @if(auth()->user()->unreadNotifications->count() > 0)
-                        <span class="notification-count" style="position: absolute; top: -8px; right: -8px; background: var(--danger); color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-center; font-size: 0.7rem; font-weight: 700;">
-                            {{ auth()->user()->unreadNotifications->count() }}
-                        </span>
-                    @endif
+              @php
+    $unreadCount = \App\Models\Notification::where('user_id', auth()->id())->where('read', false)->count();
+@endphp
+
+<div class="notification-badge" onclick="toggleNotifications()" style="position: relative; cursor: pointer;">
+    <span style="font-size: 1.5rem;">🔔</span>
+    @if($unreadCount > 0)
+        <span class="notification-count" style="position: absolute; top: -8px; right: -8px; background: var(--danger); color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700;">
+            {{ $unreadCount }}
+        </span>
+    @endif
+</div>
                     
                     <!-- Notifications Panel -->
                     <div id="notificationsPanel" style="display: none; position: absolute; top: 100%; right: 0; width: 360px; max-height: 500px; overflow-y: auto; background: white; border-radius: 12px; box-shadow: 0 8px 32px var(--shadow-lg); margin-top: 1rem; z-index: 1000;">

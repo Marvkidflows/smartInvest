@@ -1,289 +1,499 @@
-@extends('layouts.app')
+@extends('layouts.dashboard')
 
-@section('title', 'Admin Dashboard - Smart System')
+@section('title', 'Admin Dashboard')
 
 @section('content')
-<div class="admin-dashboard">
-    <!-- Admin Header -->
-    <div class="admin-header">
+<div class="dashboard-container">
+    <!-- Header -->
+    <div class="dashboard-header">
         <div>
-            <h1 class="admin-title">Admin Dashboard</h1>
-            <p class="admin-subtitle">Platform overview and management</p>
+            <h1 class="dashboard-title">Admin Dashboard</h1>
+            <p class="dashboard-subtitle">Complete platform control and investor management</p>
         </div>
-        <div class="admin-actions">
-            <a href="{{ route('admin.dashboard') }}" class="btn-view-investor">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                    <path d="M10 3C5 3 1.73 6.11 1 10C1.73 13.89 5 17 10 17C15 17 18.27 13.89 19 10C18.27 6.11 15 3 10 3Z" stroke="currentColor" stroke-width="2"/>
-                    <circle cx="10" cy="10" r="3" stroke="currentColor" stroke-width="2"/>
-                </svg>
-                View as Investor
+        <div style="display: flex; gap: 1rem;">
+            <a href="{{ route('admin.announcements.create') }}" class="btn btn-primary">
+                📢 Send Announcement
+            </a>
+            <a href="{{ route('admin.investment-plans.create') }}" class="btn btn-success">
+                ➕ Create Plan
             </a>
         </div>
     </div>
 
-    <!-- Platform Statistics -->
-    <div class="admin-stats-grid">
-        <!-- Total Users -->
-        <div class="admin-stat-card green-gradient">
-            <div class="stat-icon green">
-                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                    <path d="M16 4C13.8783 4 11.8434 4.84286 10.3431 6.34315C8.84285 7.84344 8 9.87827 8 12C8 14.1217 8.84285 16.1566 10.3431 17.6569C11.8434 19.1571 13.8783 20 16 20C18.1217 20 20.1566 19.1571 21.6569 17.6569C23.1571 16.1566 24 14.1217 24 12C24 9.87827 23.1571 7.84344 21.6569 6.34315C20.1566 4.84286 18.1217 4 16 4Z" stroke="white" stroke-width="2"/>
-                    <path d="M6 28C6.63214 25.5343 8.04798 23.3421 10.0353 21.7493C12.0227 20.1565 14.4755 19.2476 17 19.2476C19.5245 19.2476 21.9773 20.1565 23.9647 21.7493C25.952 23.3421 27.3679 25.5343 28 28" stroke="white" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-            </div>
-            <div class="stat-content">
-                <p class="stat-label">Total Users</p>
-                <h2 class="stat-value">{{ $totalUsers ?? 1247 }}</h2>
-                <p class="stat-change positive">+24 this week</p>
-            </div>
+    <!-- Key Statistics -->
+    <div class="stats-grid">
+        <div class="stat-card gradient-primary">
+            <div class="stat-label">Total Investors</div>
+            <div class="stat-value">{{ $totalInvestors ?? 0 }}</div>
+            <div class="stat-change positive">{{ $activeInvestors ?? 0 }} Active</div>
         </div>
 
-        <!-- Total Invested -->
-        <div class="admin-stat-card gold-gradient">
-            <div class="stat-icon gold">
-                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                    <path d="M16 28C22.6274 28 28 22.6274 28 16C28 9.37258 22.6274 4 16 4C9.37258 4 4 9.37258 4 16C4 22.6274 9.37258 28 16 28Z" stroke="white" stroke-width="2"/>
-                    <path d="M16 10V16L20 18" stroke="white" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-            </div>
-            <div class="stat-content">
-                <p class="stat-label">Total Invested</p>
-                <h2 class="stat-value">${{ number_format($totalInvested ?? 2840000, 0) }}</h2>
-                <p class="stat-change positive">+12.5% growth</p>
-            </div>
+        <div class="stat-card gradient-success">
+            <div class="stat-label">Total Invested</div>
+            <div class="stat-value">${{ number_format($totalInvested ?? 0, 0) }}</div>
+            <div class="stat-change">Platform Assets</div>
         </div>
 
-        <!-- Pending Withdrawals -->
-        <div class="admin-stat-card orange-gradient">
-            <div class="stat-icon orange">
-                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                    <path d="M12 24L16 28L20 24" stroke="white" stroke-width="2" stroke-linecap="round"/>
-                    <path d="M16 6V28" stroke="white" stroke-width="2" stroke-linecap="round"/>
-                    <path d="M28 12H4" stroke="white" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-            </div>
-            <div class="stat-content">
-                <p class="stat-label">Pending Withdrawals</p>
-                <h2 class="stat-value">{{ $pendingWithdrawals ?? 8 }}</h2>
-                <a href="{{ route('admin.withdrawals') }}" class="stat-link">Review →</a>
-            </div>
+        <div class="stat-card gradient-warning">
+            <div class="stat-label">Pending Withdrawals</div>
+            <div class="stat-value">{{ $pendingWithdrawals ?? 0 }}</div>
+            <div class="stat-change">${{ number_format($pendingAmount ?? 0, 0) }}</div>
         </div>
 
-        <!-- Active Tasks -->
-        <div class="admin-stat-card blue-gradient">
-            <div class="stat-icon blue">
-                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                    <path d="M8 16L14 22L24 10" stroke="white" stroke-width="2" stroke-linecap="round"/>
-                    <rect x="4" y="4" width="24" height="24" rx="4" stroke="white" stroke-width="2"/>
-                </svg>
-            </div>
-            <div class="stat-content">
-                <p class="stat-label">Active Tasks</p>
-                <h2 class="stat-value">{{ $activeTasks ?? 12 }}</h2>
-                <a href="{{ route('admin.tasks') }}" class="stat-link">Manage →</a>
-            </div>
+        <div class="stat-card gradient-info">
+            <div class="stat-label">New Messages</div>
+            <div class="stat-value">{{ $unreadMessages ?? 0 }}</div>
+            <div class="stat-change">Requires Response</div>
         </div>
     </div>
 
-    <!-- Main Content Grid -->
-    <div class="admin-content-grid">
-        <!-- Recent Users Table -->
-        <div class="admin-card">
-            <div class="admin-card-header">
-                <h3>Recent Registrations</h3>
-                <a href="{{ route('admin.users') }}" class="view-all-link">View All →</a>
+    <!-- Main Grid -->
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+
+        <!-- Investment Plans Management -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">📊 Investment Plans</h2>
+                <a href="{{ route('admin.investment-plans.index') }}" style="color: var(--primary-light); font-weight: 600; text-decoration: none;">View All →</a>
             </div>
-            <div class="admin-table-container">
-                <table class="admin-table">
-                    <thead>
-                        <tr>
-                            <th>User</th>
-                            <th>Email</th>
-                            <th>Balance</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($recentUsers ?? [] as $user)
-                            <tr>
-                                <td>
-                                    <div class="user-cell">
-                                        <div class="user-avatar">{{ substr($user->name, 0, 1) }}</div>
-                                        <span class="user-name">{{ $user->name }}</span>
-                                    </div>
-                                </td>
-                                <td class="email-cell">{{ $user->email }}</td>
-                                <td class="balance-cell">${{ number_format($user->balance, 2) }}</td>
-                                <td>
-                                    <span class="status-badge {{ $user->status === 'active' ? 'active' : 'suspended' }}">
-                                        {{ ucfirst($user->status) }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <button class="btn-action edit" onclick="editUser({{ $user->id }})">
-                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                                <path d="M11.5 2L14 4.5L5 13.5H2.5V11L11.5 2Z" stroke="currentColor" stroke-width="2"/>
-                                            </svg>
-                                        </button>
-                                        @if($user->status === 'active')
-                                            <button class="btn-action suspend" onclick="suspendUser({{ $user->id }})">
-                                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                                    <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="2"/>
-                                                    <path d="M5 11L11 5" stroke="currentColor" stroke-width="2"/>
-                                                </svg>
-                                            </button>
-                                        @else
-                                            <button class="btn-action activate" onclick="activateUser({{ $user->id }})">
-                                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                                    <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="2"/>
-                                                    <path d="M5 8L7 10L11 6" stroke="currentColor" stroke-width="2"/>
-                                                </svg>
-                                            </button>
-                                        @endif
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="5" class="empty-state">No recent users</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+            <div class="card-body">
+                @forelse($plans ?? [] as $plan)
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 1rem; padding: 1rem; border-bottom: 1px solid var(--gray-200); align-items: center;">
+                        <div>
+                            <strong>{{ $plan->name }}</strong>
+                            <div style="font-size: 0.85rem; color: var(--gray-500);">{{ $plan->duration_months }} months</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <strong>{{ $plan->profit_percentage }}%</strong>
+                            <div style="font-size: 0.85rem; color: var(--gray-500);">ROI</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <strong>{{ $plan->getActiveInvestmentsCount() ?? 0 }}</strong>
+                            <div style="font-size: 0.85rem; color: var(--gray-500);">Active</div>
+                        </div>
+                        <a href="{{ route('admin.investment-plans.edit', $plan) }}" class="btn btn-sm btn-secondary">Edit</a>
+                    </div>
+                @empty
+                    <p style="color: var(--gray-500); text-align: center; padding: 2rem;">No plans yet</p>
+                @endforelse
             </div>
         </div>
 
-        <!-- Sidebar -->
-        <div class="admin-sidebar">
-            <!-- Quick Actions -->
-            <div class="admin-card">
-                <div class="admin-card-header">
-                    <h3>Quick Actions</h3>
+        <!-- Quick Actions Sidebar -->
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">⚡ Quick Actions</h3>
                 </div>
-                <div class="quick-actions">
-                    <a href="{{ route('admin.tasks.create') }}" class="quick-action-btn primary">
-                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                            <path d="M10 4V16M4 10H16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                        </svg>
-                        Create Task
+                <div class="card-body" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <a href="{{ route('admin.deposits.index') }}" class="btn btn-primary btn-block">
+                        💰 Review Deposits
                     </a>
-                    <a href="{{ route('admin.notifications.create') }}" class="quick-action-btn secondary">
-                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                            <path d="M15 6.66699C15 5.34091 14.4732 4.06914 13.5355 3.13146C12.5979 2.19378 11.3261 1.66699 10 1.66699C8.67392 1.66699 7.40215 2.19378 6.46447 3.13146C5.52678 4.06914 5 5.34091 5 6.66699C5 12.5003 2.5 14.167 2.5 14.167H17.5C17.5 14.167 15 12.5003 15 6.66699Z" stroke="currentColor" stroke-width="2"/>
-                        </svg>
-                        Send Notification
+                    <a href="{{ route('admin.withdrawals.index') }}" class="btn btn-warning btn-block">
+                        🔄 Process Withdrawals
                     </a>
-                    <a href="{{ route('admin.users') }}" class="quick-action-btn secondary">
-                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                            <path d="M13 15C13 13.6739 12.4732 12.4021 11.5355 11.4645C10.5979 10.5268 9.32608 10 8 10C6.67392 10 5.40215 10.5268 4.46447 11.4645C3.52678 12.4021 3 13.6739 3 15" stroke="currentColor" stroke-width="2"/>
-                            <circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="2"/>
-                        </svg>
-                        Manage Users
+                    <a href="{{ route('admin.messages.index') }}" class="btn btn-info btn-block">
+                        💬 Messages
                     </a>
-                    <a href="{{ route('admin.withdrawals') }}" class="quick-action-btn warning">
-                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                            <path d="M6 14L10 18L14 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            <path d="M10 2V18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                        </svg>
-                        Process Withdrawals
+                    <a href="{{ route('admin.users.index') }}" class="btn btn-secondary btn-block">
+                        👥 Manage Investors
                     </a>
                 </div>
             </div>
 
             <!-- System Status -->
-            <div class="admin-card">
-                <div class="admin-card-header">
-                    <h3>System Status</h3>
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">✅ System Status</h3>
                 </div>
-                <div class="system-status">
-                    <div class="status-item">
-                        <span class="status-label">Server</span>
-                        <span class="status-indicator online">● Online</span>
+                <div class="card-body" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>Server</span>
+                        <span style="color: var(--success); font-weight: 600;">● Online</span>
                     </div>
-                    <div class="status-item">
-                        <span class="status-label">Database</span>
-                        <span class="status-indicator online">● Connected</span>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>Database</span>
+                        <span style="color: var(--success); font-weight: 600;">● Connected</span>
                     </div>
-                    <div class="status-item">
-                        <span class="status-label">API</span>
-                        <span class="status-indicator online">● Active</span>
-                    </div>
-                    <div class="status-item">
-                        <span class="status-label">Last Backup</span>
-                        <span class="status-value">{{ now()->subHours(2)->diffForHumans() }}</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Quick Stats -->
-            <div class="admin-card">
-                <div class="admin-card-header">
-                    <h3>Quick Stats</h3>
-                </div>
-                <div class="quick-stats">
-                    <div class="quick-stat-item">
-                        <span class="quick-stat-label">Today's Signups</span>
-                        <span class="quick-stat-value">{{ $todaySignups ?? 12 }}</span>
-                    </div>
-                    <div class="quick-stat-item">
-                        <span class="quick-stat-label">Active Investments</span>
-                        <span class="quick-stat-value">{{ $activeInvestments ?? 347 }}</span>
-                    </div>
-                    <div class="quick-stat-item">
-                        <span class="quick-stat-label">Today's Earnings</span>
-                        <span class="quick-stat-value">${{ number_format($todayEarnings ?? 8450, 0) }}</span>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>API</span>
+                        <span style="color: var(--success); font-weight: 600;">● Active</span>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Recent Investments -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">📈 Recent Investments</h2>
+            <a href="{{ route('admin.investments.index') }}" style="color: var(--primary-light); font-weight: 600; text-decoration: none;">View All →</a>
+        </div>
+        <div style="overflow-x: auto;">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Investor</th>
+                        <th>Plan</th>
+                        <th>Amount</th>
+                        <th>ROI</th>
+                        <th>Duration</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($recentInvestments ?? [] as $investment)
+                        <tr>
+                            <td>
+                                <strong>{{ $investment->user->full_name ?? $investment->user->name }}</strong>
+                                <div style="font-size: 0.85rem; color: var(--gray-500);">{{ $investment->user->email }}</div>
+                            </td>
+                            <td>{{ $investment->investmentPlan->name ?? 'Plan' }}</td>
+                            <td><strong>${{ number_format($investment->amount, 2) }}</strong></td>
+                            <td>
+                                <span style="color: var(--success); font-weight: 600;">+{{ $investment->investmentPlan->profit_percentage ?? 0 }}%</span>
+                            </td>
+                            <td>{{ $investment->investmentPlan->duration_months ?? 0 }} months</td>
+                            <td>
+                                <span class="badge badge-success">Active</span>
+                            </td>
+                            <td>
+                                <a href="{{ route('admin.investments.show', $investment) }}" class="btn btn-sm btn-secondary">View</a>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="7" style="text-align: center; padding: 2rem; color: var(--gray-500);">No investments yet</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Messages Section -->
+    <div style="margin-top: 2rem; display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">💬 Recent Messages</h2>
+                <a href="{{ route('admin.messages.index') }}" style="color: var(--primary-light); font-weight: 600; text-decoration: none;">View All →</a>
+            </div>
+            <div class="card-body">
+                @forelse($recentMessages ?? [] as $message)
+                    <div style="padding: 1rem; border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: start;">
+                        <div style="flex: 1;">
+                            <strong>{{ $message->sender->full_name ?? $message->sender->name }}</strong>
+                            <div style="font-size: 0.85rem; color: var(--gray-500);">{{ $message->subject ?? 'No subject' }}</div>
+                            <div style="margin-top: 0.5rem; color: var(--gray-700);">{{ Str::limit($message->message, 100) }}</div>
+                        </div>
+                        <a href="{{ route('admin.messages.show', $message) }}" class="btn btn-sm btn-primary">Reply</a>
+                    </div>
+                @empty
+                    <p style="color: var(--gray-500); text-align: center; padding: 2rem;">No messages yet</p>
+                @endforelse
+            </div>
+        </div>
+
+        <!-- Deposits & Withdrawals Overview -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">💳 Transactions</h3>
+            </div>
+            <div class="card-body" style="display: flex; flex-direction: column; gap: 1rem;">
+                <div style="padding: 1rem; background: var(--gray-50); border-radius: 8px;">
+                    <div style="font-size: 0.85rem; color: var(--gray-500); margin-bottom: 0.5rem;">Pending Deposits</div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--success);">{{ $pendingDeposits ?? 0 }}</div>
+                </div>
+                <div style="padding: 1rem; background: var(--gray-50); border-radius: 8px;">
+                    <div style="font-size: 0.85rem; color: var(--gray-500); margin-bottom: 0.5rem;">Pending Withdrawals</div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--warning);">{{ $pendingWithdrawals ?? 0 }}</div>
+                </div>
+                <div style="padding: 1rem; background: var(--gray-50); border-radius: 8px;">
+                    <div style="font-size: 0.85rem; color: var(--gray-500); margin-bottom: 0.5rem;">Total Volume</div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary);">${{ number_format($totalTransactionVolume ?? 0, 0) }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Investors List -->
+    <div class="card" style="margin-top: 2rem;">
+        <div class="card-header">
+            <h2 class="card-title">👥 Top Investors</h2>
+            <a href="{{ route('admin.users.index') }}" style="color: var(--primary-light); font-weight: 600; text-decoration: none;">View All →</a>
+        </div>
+        <div style="overflow-x: auto;">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Investor Name</th>
+                        <th>Email</th>
+                        <th>Balance</th>
+                        <th>Total Invested</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($topInvestors ?? [] as $investor)
+                        <tr>
+                            <td><strong>{{ $investor->full_name ?? $investor->name }}</strong></td>
+                            <td>{{ $investor->email }}</td>
+                            <td>${{ number_format($investor->balance, 2) }}</td>
+                            <td>
+                                <strong>${{ number_format($investor->investments_sum_amount ?? 0, 2) }}</strong>
+                            </td>
+                            <td>
+                                <span class="badge {{ $investor->status === 'active' ? 'badge-success' : 'badge-danger' }}">
+                                    {{ ucfirst($investor->status) }}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{{ route('admin.users.show', $investor) }}" class="btn btn-sm btn-secondary">View</a>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 2rem; color: var(--gray-500);">No investors yet</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
-@push('scripts')
-<script>
-function editUser(userId) {
-    window.location.href = `/admin/users/${userId}/edit`;
-}
-
-function suspendUser(userId) {
-    if (confirm('Are you sure you want to suspend this user?')) {
-        fetch(`/admin/users/${userId}/suspend`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('User suspended successfully');
-                location.reload();
-            }
-        });
+<style>
+    .dashboard-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 2rem;
     }
-}
 
-function activateUser(userId) {
-    if (confirm('Are you sure you want to activate this user?')) {
-        fetch(`/admin/users/${userId}/activate`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('User activated successfully');
-                location.reload();
-            }
-        });
+    .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
     }
-}
-</script>
-@endpush
+
+    .dashboard-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #0F172A;
+        font-family: 'Crimson Pro', serif;
+    }
+
+    .dashboard-subtitle {
+        color: #6B7280;
+        font-size: 0.95rem;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid #E5E7EB;
+        transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+        transform: translateY(-4px);
+    }
+
+    .stat-card.gradient-primary {
+        background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%);
+        border: none;
+        color: white;
+    }
+
+    .stat-card.gradient-success {
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+        border: none;
+        color: white;
+    }
+
+    .stat-card.gradient-warning {
+        background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+        border: none;
+        color: white;
+    }
+
+    .stat-card.gradient-info {
+        background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+        border: none;
+        color: white;
+    }
+
+    .stat-label {
+        font-size: 0.85rem;
+        font-weight: 500;
+        opacity: 0.9;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        font-family: 'Crimson Pro', serif;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-change {
+        font-size: 0.85rem;
+        opacity: 0.8;
+    }
+
+    .stat-change.positive {
+        color: #10B981;
+    }
+
+    .card {
+        background: white;
+        border-radius: 12px;
+        border: 1px solid #E5E7EB;
+        overflow: hidden;
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem;
+        border-bottom: 1px solid #E5E7EB;
+    }
+
+    .card-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #0F172A;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .table thead {
+        background: #F9FAFB;
+        border-bottom: 2px solid #E5E7EB;
+    }
+
+    .table th {
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: #374151;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .table td {
+        padding: 1rem;
+        border-bottom: 1px solid #E5E7EB;
+    }
+
+    .table tbody tr:hover {
+        background: #F9FAFB;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 0.375rem 0.875rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .badge-success {
+        background: #D1FAE5;
+        color: #065F46;
+    }
+
+    .badge-danger {
+        background: #FEE2E2;
+        color: #991B1B;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+
+    .btn-primary {
+        background: #1E3A8A;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #0F172A;
+        box-shadow: 0 8px 16px rgba(30, 58, 138, 0.3);
+        transform: translateY(-2px);
+    }
+
+    .btn-success {
+        background: #10B981;
+        color: white;
+    }
+
+    .btn-success:hover {
+        background: #059669;
+    }
+
+    .btn-warning {
+        background: #F59E0B;
+        color: white;
+    }
+
+    .btn-info {
+        background: #3B82F6;
+        color: white;
+    }
+
+    .btn-secondary {
+        background: #F3F4F6;
+        color: #1E3A8A;
+        border: 2px solid #E5E7EB;
+    }
+
+    .btn-secondary:hover {
+        background: white;
+        border-color: #1E3A8A;
+    }
+
+    .btn-sm {
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+    }
+
+    .btn-block {
+        width: 100%;
+        justify-content: center;
+    }
+</style>
 @endsection

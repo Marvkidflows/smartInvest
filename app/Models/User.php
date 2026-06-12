@@ -1,107 +1,112 @@
 <?php
+// LOCATION: app/Models/User.php
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
-
-    /*
-    |--------------------------------------------------------------------------
-    | Mass Assignable Fields
-    |--------------------------------------------------------------------------
-    */
+    use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
-
-        // Basic Info
         'name',
         'full_name',
+        'first_name',
+        'last_name',
         'email',
         'password',
-        'country_code',
+        'role',
+        'status',
         'phone',
+        'country_code',
         'country',
-        'referral_code',
-
-        // Legal Agreements
-        'terms_accepted',
-        'risk_accepted',
-
-        // Registration Tracking
-        'registration_stage',
-        'registration_completed',
-
-        // KYC Information
-        'id_type',
-        'id_number',
-        'id_document_path',
-        'selfie_path',
-        'date_of_birth',
-        'residential_address',
+        'address',
         'city',
         'state',
         'postal_code',
-        'kyc_status',
-
-        // Investor Profile
+        'date_of_birth',
+        'balance',
+        'referral_code',
+        'referred_by',
+        'registration_stage',
+        'registration_completed',
         'employment_status',
         'annual_income_range',
         'source_of_funds',
         'investment_experience',
         'risk_tolerance',
         'investment_objectives',
-
-        // Security
         'withdrawal_pin',
         'two_factor_enabled',
-        'two_factor_secret',
-
-        // System Fields
-        'role',
-        'balance',
-        'tier',
-        'status',
+        'profile_photo',
+        'avatar',
+        'last_login_at',
     ];
-
-    /*
-    |--------------------------------------------------------------------------
-    | Hidden Fields
-    |--------------------------------------------------------------------------
-    */
 
     protected $hidden = [
         'password',
         'remember_token',
         'withdrawal_pin',
-        'two_factor_secret',
     ];
-
-    /*
-    |--------------------------------------------------------------------------
-    | Type Casting
-    |--------------------------------------------------------------------------
-    */
 
     protected $casts = [
-        'email_verified_at' => 'datetime',
-        'balance' => 'decimal:2',
-        'terms_accepted' => 'boolean',
-        'risk_accepted' => 'boolean',
-        'registration_completed' => 'boolean',
-        'two_factor_enabled' => 'boolean',
-        'date_of_birth' => 'date',
+        'email_verified_at'       => 'datetime',
+        'last_login_at'           => 'datetime',
+        'date_of_birth'           => 'date',
+        'balance'                 => 'decimal:2',
+        'registration_completed'  => 'boolean',
+        'two_factor_enabled'      => 'boolean',
     ];
 
-    /*
-    |--------------------------------------------------------------------------
-    | Role Helpers
-    |--------------------------------------------------------------------------
-    */
+    // ── RELATIONSHIPS ──────────────────────────────────────────────────────
+
+    // All investment accounts for this user
+    public function investmentAccounts()
+    {
+        return $this->hasMany(InvestmentAccount::class);
+    }
+
+    // Alias
+    public function investments()
+    {
+        return $this->hasMany(InvestmentAccount::class);
+    }
+
+    // All deposits
+    public function deposits()
+    {
+        return $this->hasMany(Deposit::class);
+    }
+
+    // All withdrawals
+    public function withdrawals()
+    {
+        return $this->hasMany(Withdrawal::class);
+    }
+
+    // All messages sent TO admin
+    public function messages()
+    {
+        return $this->hasMany(Message::class);
+    }
+
+    // Who referred this user
+    public function referrer()
+    {
+        return $this->belongsTo(User::class, 'referred_by');
+    }
+
+    // Users this person referred
+    public function referrals()
+    {
+        return $this->hasMany(User::class, 'referred_by');
+    }
+
+    // ── HELPERS ────────────────────────────────────────────────────────────
 
     public function isAdmin(): bool
     {
@@ -113,70 +118,31 @@ class User extends Authenticatable
         return $this->role === 'investor';
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Registration Helpers
-    |--------------------------------------------------------------------------
-    */
-
-    public function hasCompletedRegistration(): bool
+    public function isActive(): bool
     {
-        return $this->registration_completed === true;
+        return $this->status === 'active';
     }
 
-    public function isKycApproved(): bool
+    public function isSuspended(): bool
     {
-        return $this->kyc_status === 'approved';
+        return $this->status === 'suspended';
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Relationships
-    |--------------------------------------------------------------------------
-    */
-
-    // User Transactions
-    public function transactions()
+    // Total invested amount
+    public function getTotalInvestedAttribute(): float
     {
-        return $this->hasMany(Transaction::class);
+        return (float) $this->investmentAccounts()->sum('amount');
     }
 
-    // User Investments
-    public function investments()
+    // Total expected profit
+    public function getTotalProfitAttribute(): float
     {
-        return $this->hasMany(Investment::class);
+        return (float) $this->investmentAccounts()->sum('expected_profit');
     }
 
-    // Completed Tasks
-    public function completedTasks()
+    // Count of active investments
+    public function getActiveInvestmentsCountAttribute(): int
     {
-        return $this->belongsToMany(Task::class, 'task_completions')
-            ->withPivot('completed_at')
-            ->withTimestamps();
-    }
-
-    // Task Completion Records
-    public function taskCompletions()
-    {
-        return $this->hasMany(TaskCompletion::class);
-    }
-
-    // Notifications
-    public function notifications()
-    {
-        return $this->hasMany(Notification::class)->latest();
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Task Helper
-    |--------------------------------------------------------------------------
-    */
-
-    public function hasCompletedTask($taskId): bool
-    {
-        return $this->completedTasks()
-            ->where('task_id', $taskId)
-            ->exists();
+        return $this->investmentAccounts()->where('status', 'active')->count();
     }
 }

@@ -1,114 +1,143 @@
 <?php
+// LOCATION: routes/web.php
+// COPY AND PASTE THIS ENTIRE FILE — REPLACE YOUR EXISTING web.php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\HomeController;
+
+// Auth
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\InvestorController;
-use App\Http\Controllers\AdminController;
+
+// Shared
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\MessageController;
+use App\Http\Controllers\NotificationController;
+
+// Admin
+use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\AdminInvestmentPlanController;
+use App\Http\Controllers\Admin\AdminDepositController;
+use App\Http\Controllers\Admin\AdminWithdrawalController;
+use App\Http\Controllers\Admin\AdminAnnouncementController;
+use App\Http\Controllers\Admin\AdminAnalyticsController;
+use App\Http\Controllers\Admin\AdminUserController;
+use App\Http\Controllers\Admin\AdminInvestmentController;
+
+// Investor
+use App\Http\Controllers\Investor\InvestorDashboardController;
+use App\Http\Controllers\Investor\InvestorInvestmentController;
+use App\Http\Controllers\Investor\InvestorDepositController;
+use App\Http\Controllers\Investor\InvestorWithdrawalController;
+use App\Http\Controllers\Investor\InvestorReferralController;
+use App\Http\Controllers\Investor\InvestorProfileController;
+use App\Http\Controllers\Investor\InvestorAnnouncementController;
 
 /*
 |--------------------------------------------------------------------------
 | PUBLIC PAGES
 |--------------------------------------------------------------------------
 */
-
-Route::get('/', [HomeController::class, 'index'])->name('home');
-Route::get('/about', [HomeController::class, 'about'])->name('about');
-Route::get('/plans', [HomeController::class, 'plans'])->name('plans');
+Route::get('/',             [HomeController::class, 'index'])->name('home');
+Route::get('/about',        [HomeController::class, 'about'])->name('about');
+Route::get('/plans',        [HomeController::class, 'plans'])->name('plans');
 Route::get('/how-it-works', [HomeController::class, 'howItWorks'])->name('how-it-works');
-Route::get('/faq', [HomeController::class, 'faq'])->name('faq');
-Route::get('/contact', [HomeController::class, 'contact'])->name('contact');
-Route::post('/contact', [HomeController::class, 'contactSubmit'])->name('contact.submit');
-
+Route::get('/faq',          [HomeController::class, 'faq'])->name('faq');
+Route::get('/contact',      [HomeController::class, 'contact'])->name('contact');
+Route::post('/contact',     [HomeController::class, 'contactSubmit'])->name('contact.submit');
 
 /*
 |--------------------------------------------------------------------------
-| AUTHENTICATION (Multi-Stage Registration)
+| AUTHENTICATION
 |--------------------------------------------------------------------------
 */
-
 Route::middleware('guest')->group(function () {
 
-    // ---------- Registration Stage 1 ----------
-    Route::get('/register', [RegisterController::class, 'showStage1'])->name('register');
+    Route::get('/login',  [LoginController::class, 'showLoginForm'])->name('login');
+    Route::post('/login', [LoginController::class, 'login'])->name('login.submit');
+
+    Route::get('/register',         [RegisterController::class, 'showStage1'])->name('register');
     Route::post('/register/stage1', [RegisterController::class, 'submitStage1'])->name('register.stage1.submit');
 
-    // ---------- Registration Stage 2 ----------
-    Route::get('/register/stage2', [RegisterController::class, 'showStage2'])
-        ->name('register.stage2')
-        ->middleware('registration.stage:1');
+    Route::get('/register/stage2',  [RegisterController::class, 'showStage2'])->name('register.stage2');
+    Route::post('/register/stage2', [RegisterController::class, 'submitStage2'])->name('register.stage2.submit');
 
-    Route::post('/register/stage2', [RegisterController::class, 'submitStage2'])
-        ->name('register.stage2.submit');
+    Route::get('/register/stage3',  [RegisterController::class, 'showStage3'])->name('register.stage3');
+    Route::post('/register/stage3', [RegisterController::class, 'submitStage3'])->name('register.stage3.submit');
 
-    // ---------- Registration Stage 3 ----------
-    Route::get('/register/stage3', [RegisterController::class, 'showStage3'])
-        ->name('register.stage3')
-        ->middleware('registration.stage:2');
-
-    Route::post('/register/stage3', [RegisterController::class, 'submitStage3'])
-        ->name('register.stage3.submit');
-
-    // ---------- Registration Stage 4 ----------
-    Route::get('/register/stage4', [RegisterController::class, 'showStage4'])
-        ->name('register.stage4')
-        ->middleware('registration.stage:3');
-
-    Route::post('/register/stage4', [RegisterController::class, 'submitStage4'])
-        ->name('register.stage4.submit');
-
-
-    // ---------- Login ----------
-    Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
-    Route::post('/login', [LoginController::class, 'login'])->name('login.submit');
+    Route::get('/register/stage4',  [RegisterController::class, 'showStage4'])->name('register.stage4');
+    Route::post('/register/stage4', [RegisterController::class, 'submitStage4'])->name('register.stage4.submit');
 });
-
 
 /*
 |--------------------------------------------------------------------------
 | LOGOUT
 |--------------------------------------------------------------------------
 */
-
 Route::post('/logout', [LoginController::class, 'logout'])
     ->name('logout')
     ->middleware('auth');
-
 
 /*
 |--------------------------------------------------------------------------
 | INVESTOR ROUTES
 |--------------------------------------------------------------------------
 */
+Route::middleware(['auth', 'investor'])
+    ->prefix('investor-investment')
+    ->name('investor-investment.')
+    ->group(function () {
 
-
-Route::middleware(['auth'])->group(function () {
-    
     // Dashboard
-    Route::get('/dashboard', [InvestorController::class, 'dashboard'])->name('investor.dashboard');
-    
-    // Investment Plans
-   Route::get('/investor/plans', [InvestorController::class, 'plans'])->name('investor.plans');
-    Route::post('/investor/investments/create', [InvestorController::class, 'createInvestment'])->name('investor.investments.create');
-    Route::get('/investor/investments', [InvestorController::class, 'investments'])->name('investor.investments');
-    
-    // Tasks
-    Route::get('/investor/tasks', [InvestorController::class, 'tasks'])->name('investor.tasks');
-    Route::post('/investor/tasks/complete', [InvestorController::class, 'completeTask'])->name('investor.tasks.complete');
-    
-    // Transactions
-    Route::get('/investor/transactions', [InvestorController::class, 'transactions'])->name('investor.transactions');
-    Route::get('/investor/transactions/download', [InvestorController::class, 'downloadTransactions'])->name('investor.transactions.download');
-    Route::get('/investor/transactions/{id}/receipt', [InvestorController::class, 'downloadReceipt'])->name('investor.transactions.receipt');
-    
-    // Withdrawals
-    Route::get('/investor/withdrawals', [InvestorController::class, 'withdrawals'])->name('investor.withdrawals');
-    Route::post('/investor/withdrawals/request', [InvestorController::class, 'requestWithdrawal'])->name('investor.withdrawals.request');
-    
+    Route::get('/dashboard', [InvestorDashboardController::class, 'dashboard'])
+        ->name('dashboard');
+
     // Notifications
-    Route::post('/investor/notifications/{id}/read', [InvestorController::class, 'markNotificationRead'])->name('investor.notifications.read');
-    Route::post('/investor/notifications/read-all', [InvestorController::class, 'markAllNotificationsRead'])->name('investor.notifications.read-all');
+    Route::get('/notifications',                      [NotificationController::class, 'index'])
+        ->name('notifications.index');
+    Route::post('/notifications/{notification}/read', [NotificationController::class, 'markAsRead'])
+        ->name('notifications.read');
+    Route::delete('/notifications/{notification}',    [NotificationController::class, 'destroy'])
+        ->name('notifications.destroy');
+
+    // Announcements — shows in investor notification bell
+    Route::get('/announcements', [InvestorAnnouncementController::class, 'investorIndex'])
+        ->name('announcements.index');
+
+    // Messages — investor sends to admin, sees replies
+    // RULE: /messages/create MUST come before /messages/{message}
+    Route::get('/messages',           [MessageController::class, 'investorIndex'])->name('messages.index');
+    Route::get('/messages/create',    [MessageController::class, 'investorCreate'])->name('messages.create');
+    Route::post('/messages',          [MessageController::class, 'investorStore'])->name('messages.store');
+    Route::get('/messages/{message}', [MessageController::class, 'investorShow'])->name('messages.show');
+
+    // Profile
+    Route::get('/investor/profile',      [InvestorProfileController::class, 'show'])->name('profile.show');
+    Route::get('/investor/profile/edit', [InvestorProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/investor/profile',      [InvestorProfileController::class, 'update'])->name('profile.update');
+
+    // Investments
+    // RULE: /plans and /create/{plan} MUST come before /{investmentAccount}
+    Route::get('/investor/investments',                     [InvestorInvestmentController::class, 'index'])->name('investments.index');
+    Route::get('/investor/investments/plans',               [InvestorInvestmentController::class, 'plans'])->name('investments.plans');
+    Route::get('/investor/investments/create/{plan}',       [InvestorInvestmentController::class, 'create'])->name('investments.create');
+    Route::post('/investor/investments',                    [InvestorInvestmentController::class, 'store'])->name('investments.store');
+    Route::get('/investor/investments/{investmentAccount}', [InvestorInvestmentController::class, 'show'])->name('investments.show');
+
+    // Deposits
+    // RULE: /create MUST come before /{deposit}
+    Route::get('/investor/deposits',           [InvestorDepositController::class, 'index'])->name('deposits.index');
+    Route::get('/investor/deposits/create',    [InvestorDepositController::class, 'create'])->name('deposits.create');
+    Route::post('/investor/deposits',          [InvestorDepositController::class, 'store'])->name('deposits.store');
+    Route::get('/investor/deposits/{deposit}', [InvestorDepositController::class, 'show'])->name('deposits.show');
+
+    // Withdrawals
+    // RULE: /create MUST come before any wildcard
+    Route::get('/investor/withdrawals',        [InvestorWithdrawalController::class, 'index'])->name('withdrawals.index');
+    Route::get('/investor/withdrawals/create', [InvestorWithdrawalController::class, 'create'])->name('withdrawals.create');
+    Route::post('/investor/withdrawals',       [InvestorWithdrawalController::class, 'store'])->name('withdrawals.store');
+
+    // Referrals
+    Route::get('/investor/referrals', [InvestorReferralController::class, 'index'])->name('referrals.index');
 });
 
 /*
@@ -116,51 +145,68 @@ Route::middleware(['auth'])->group(function () {
 | ADMIN ROUTES
 |--------------------------------------------------------------------------
 */
-// Admin Routes
-Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
+Route::middleware(['auth', 'admin'])
+    ->prefix('admin')
+    ->name('admin.')
+    ->group(function () {
 
-    // ── Dashboard ──────────────────────────────────────────────────
-    Route::get('/dashboard',    [AdminController::class, 'dashboard'])->name('admin.dashboard');
+    // Dashboard
+    Route::get('/dashboard', [AdminDashboardController::class, 'dashboard'])
+        ->name('dashboard');
 
-    // ── Users ──────────────────────────────────────────────────────
-    Route::get('/users',                     [AdminController::class, 'users'])->name('admin.users');
-    Route::post('/users/{id}/suspend',       [AdminController::class, 'suspendUser'])->name('admin.users.suspend');
-    Route::post('/users/{id}/activate',      [AdminController::class, 'activateUser'])->name('admin.users.activate');
-    Route::post('/users/{id}/update',        [AdminController::class, 'updateUser'])->name('admin.users.update');
-    Route::post('/users/{id}/update-balance',[AdminController::class, 'updateBalance'])->name('admin.users.update-balance');
-    Route::get('/users/{id}/transactions',   [AdminController::class, 'userTransactions'])->name('admin.users.transactions');
-    Route::post('/users/message',            [AdminController::class, 'sendMessage'])->name('admin.users.message');
-    Route::post('/users/adjust-balance',     [AdminController::class, 'adjustBalance'])->name('admin.users.adjust-balance');
+    // Analytics
+    Route::get('/analytics', [AdminAnalyticsController::class, 'index'])
+        ->name('analytics');
 
-    // ── Investors page ─────────────────────────────────────────────
-    Route::get('/investors',    [AdminController::class, 'investors'])->name('admin.investors');
+    // Users
+    Route::get('/users',                  [AdminUserController::class, 'index'])->name('users.index');
+    Route::get('/users/{user}',           [AdminUserController::class, 'show'])->name('users.show');
+    Route::put('/users/{user}',           [AdminUserController::class, 'update'])->name('users.update');
+    Route::post('/users/{user}/suspend',  [AdminUserController::class, 'suspend'])->name('users.suspend');
+    Route::post('/users/{user}/activate', [AdminUserController::class, 'activate'])->name('users.activate');
 
-    // ── Tasks ──────────────────────────────────────────────────────
-    Route::get('/tasks',                [AdminController::class, 'tasks'])->name('admin.tasks');
-    Route::get('/tasks/create',         [AdminController::class, 'createTask'])->name('admin.tasks.create');
-    Route::post('/tasks',               [AdminController::class, 'storeTask'])->name('admin.tasks.store');
-    Route::put('/tasks/{id}',           [AdminController::class, 'updateTask'])->name('admin.tasks.update');
-    Route::patch('/tasks/{id}/toggle',  [AdminController::class, 'toggleTaskStatus'])->name('admin.tasks.toggle');
-    Route::delete('/tasks/{id}',        [AdminController::class, 'deleteTask'])->name('admin.tasks.delete');
+    // Investment Plans
+    Route::resource('investment-plans', AdminInvestmentPlanController::class);
 
-    // ── Withdrawals ────────────────────────────────────────────────
-    Route::get('/withdrawals',                   [AdminController::class, 'withdrawals'])->name('admin.withdrawals');
-    Route::post('/withdrawals/{id}/approve',     [AdminController::class, 'approveWithdrawal'])->name('admin.withdrawals.approve');
-    Route::post('/withdrawals/{id}/decline',     [AdminController::class, 'declineWithdrawal'])->name('admin.withdrawals.decline');
+    // Investments
+    Route::get('/investments',                        [AdminInvestmentController::class, 'index'])->name('investments.index');
+    Route::get('/investments/{investment}',           [AdminInvestmentController::class, 'show'])->name('investments.show');
+    Route::post('/investments/{investment}/complete', [AdminInvestmentController::class, 'complete'])->name('investments.complete');
 
-    // ── Notifications ──────────────────────────────────────────────
-    Route::get('/notifications',         [AdminController::class, 'notifications'])->name('admin.notifications');
-    Route::get('/notifications/create',  [AdminController::class, 'createNotification'])->name('admin.notifications.create');
-    Route::post('/notifications/send',   [AdminController::class, 'sendNotification'])->name('admin.notifications.send');
+    // Deposits
+    Route::get('/deposits',                    [AdminDepositController::class, 'index'])->name('deposits.index');
+    Route::get('/deposits/{deposit}',          [AdminDepositController::class, 'show'])->name('deposits.show');
+    Route::post('/deposits/{deposit}/approve', [AdminDepositController::class, 'approve'])->name('deposits.approve');
+    Route::post('/deposits/{deposit}/reject',  [AdminDepositController::class, 'reject'])->name('deposits.reject');
 
+    // Withdrawals
+    Route::get('/withdrawals',                       [AdminWithdrawalController::class, 'index'])->name('withdrawals.index');
+    Route::post('/withdrawals/{withdrawal}/approve', [AdminWithdrawalController::class, 'approve'])->name('withdrawals.approve');
+    Route::post('/withdrawals/{withdrawal}/reject',  [AdminWithdrawalController::class, 'reject'])->name('withdrawals.reject');
+
+    // Messages — admin can message ANY investor privately
+    // RULE: /send and DELETE must come BEFORE /{investor} catch-all
+    Route::get('/messages',                  [MessageController::class, 'adminIndex'])->name('messages.index');
+    Route::post('/messages/{investor}/send', [MessageController::class, 'adminSend'])->name('messages.send');
+    Route::delete('/messages/{message}',     [MessageController::class, 'adminDelete'])->name('messages.destroy');
+    Route::get('/messages/{investor}',       [MessageController::class, 'adminShow'])->name('messages.show');
+
+    // Announcements — admin posts, ALL investors see in notification bell
+    Route::resource('announcements', AdminAnnouncementController::class);
 });
+
 /*
 |--------------------------------------------------------------------------
-| NOTIFICATIONS
+| MARK ALL NOTIFICATIONS READ
 |--------------------------------------------------------------------------
 */
-
 Route::get('/notifications/mark-all-read', function () {
-    auth()->user()->unreadNotifications->markAsRead();
+    $user = auth()->user();
+    if ($user) {
+        $user->unreadNotifications->markAsRead();
+    }
+    if (request()->expectsJson()) {
+        return response()->json(['message' => 'All notifications marked as read.']);
+    }
     return back();
 })->name('notifications.mark-all-read')->middleware('auth');

@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
         // Call your demo data seeder
         $this->call([
             DemoDataSeeder::class,
+            InvestmentPlanSeeder::class,
         ]);
     }
 }

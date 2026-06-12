@@ -447,7 +447,7 @@ class InvestorController extends Controller
             'type' => 'success',
         ]);
 
-        return redirect()->route('dashboard')
+        return redirect()->route('investor.dashboard')
             ->with('success', 'Investment created successfully! Your returns will be credited daily.');
     }
 

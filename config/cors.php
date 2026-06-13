@@ -1,6 +1,6 @@
 <?php
 return [
-    'paths'                    => ['*'],
+    'paths'                    => ['api/*', 'sanctum/csrf-cookie', '*'],
     'allowed_methods'          => ['*'],
     'allowed_origins'          => [
         'https://smart-investment-91sw.vercel.app',

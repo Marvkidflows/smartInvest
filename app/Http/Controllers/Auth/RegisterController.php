@@ -6,14 +6,13 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class RegisterController extends Controller
 {
     // =========================================================================
-    // STAGE 1 — Personal Info + Email + Password (matches your existing stage1)
+    // STAGE 1 — Personal Info + Email + Password
     // =========================================================================
     public function showStage1()
     {
@@ -39,7 +38,6 @@ class RegisterController extends Controller
             if ($referrer) $referredBy = $referrer->id;
         }
 
-        // Create user immediately at stage 1 (your existing pattern)
         $user = User::create([
             'name'                    => $validated['full_name'],
             'full_name'               => $validated['full_name'],
@@ -57,13 +55,15 @@ class RegisterController extends Controller
             'status'                  => 'active',
         ]);
 
-        // Store user ID in session for next stages
-        session(['registration_user_id' => $user->id, 'reg.completed_stage' => 1]);
+        // Issue a token so the user can authenticate through stages 2-4
+        $token = $user->createToken('registration')->plainTextToken;
 
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
                 'message' => 'Stage 1 complete.',
+                'token'   => $token,
+                'user'    => ['id' => $user->id],
             ]);
         }
         return redirect()->route('register.stage2')
@@ -80,19 +80,7 @@ class RegisterController extends Controller
 
     public function submitStage2(Request $request)
     {
-        $userId = session('registration_user_id');
-
-        if ($request->expectsJson() && !$userId) {
-            return response()->json(['message' => 'Session expired. Please start again.'], 422);
-        }
-
-        $user = User::find($userId);
-        if (!$user) {
-            if ($request->expectsJson()) {
-                return response()->json(['message' => 'User not found.'], 422);
-            }
-            return redirect()->route('register');
-        }
+        $user = $request->user();
 
         $validated = $request->validate([
             'date_of_birth'      => ['required', 'date', 'before:-18 years'],
@@ -104,16 +92,14 @@ class RegisterController extends Controller
             'date_of_birth.before' => 'You must be at least 18 years old.',
         ]);
 
-  $user->update([
-    'date_of_birth'       => $validated['date_of_birth'],
-    'residential_address' => $validated['residential_address'],
-    'city'                => $validated['city'],
-    'state'               => $validated['state'] ?? null,
-    'postal_code'         => $validated['postal_code'] ?? null,
-    'registration_stage'  => 2,
-]);
-
-        session(['reg.completed_stage' => 2]);
+        $user->update([
+            'date_of_birth'       => $validated['date_of_birth'],
+            'residential_address' => $validated['residential_address'],
+            'city'                => $validated['city'],
+            'state'               => $validated['state'] ?? null,
+            'postal_code'         => $validated['postal_code'] ?? null,
+            'registration_stage'  => 2,
+        ]);
 
         if ($request->expectsJson()) {
             return response()->json(['success' => true, 'message' => 'Stage 2 complete.']);
@@ -131,15 +117,7 @@ class RegisterController extends Controller
 
     public function submitStage3(Request $request)
     {
-        $userId = session('registration_user_id');
-        $user   = User::find($userId);
-
-        if (!$user) {
-            if ($request->expectsJson()) {
-                return response()->json(['message' => 'Session expired. Please start again.'], 422);
-            }
-            return redirect()->route('register');
-        }
+        $user = $request->user();
 
         $validated = $request->validate([
             'employment_status'    => ['required', 'string', 'max:50'],
@@ -160,8 +138,6 @@ class RegisterController extends Controller
             'registration_stage'    => 3,
         ]);
 
-        session(['reg.completed_stage' => 3]);
-
         if ($request->expectsJson()) {
             return response()->json(['success' => true, 'message' => 'Stage 3 complete.']);
         }
@@ -169,7 +145,7 @@ class RegisterController extends Controller
     }
 
     // =========================================================================
-    // STAGE 4 — Security Setup / Final Step → Log user in
+    // STAGE 4 — Security Setup / Final Step
     // =========================================================================
     public function showStage4()
     {
@@ -178,15 +154,7 @@ class RegisterController extends Controller
 
     public function submitStage4(Request $request)
     {
-        $userId = session('registration_user_id');
-        $user   = User::find($userId);
-
-        if (!$user) {
-            if ($request->expectsJson()) {
-                return response()->json(['message' => 'Session expired. Please start again.'], 422);
-            }
-            return redirect()->route('register');
-        }
+        $user = $request->user();
 
         $request->validate([
             'withdrawal_pin'              => ['nullable', 'digits:4', 'confirmed'],
@@ -194,7 +162,6 @@ class RegisterController extends Controller
             'referral_code'               => ['nullable', 'string', 'max:20'],
         ]);
 
-        // Optional withdrawal PIN
         if ($request->filled('withdrawal_pin')) {
             $user->withdrawal_pin = Hash::make($request->withdrawal_pin);
         }
@@ -202,13 +169,6 @@ class RegisterController extends Controller
         $user->registration_stage     = 4;
         $user->registration_completed = true;
         $user->save();
-
-        // Clear session
-        session()->forget(['registration_user_id', 'reg.completed_stage']);
-
-        // Log the user in
-        Auth::login($user);
-        $request->session()->regenerate();
 
         if ($request->expectsJson()) {
             return response()->json([

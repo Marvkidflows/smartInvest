@@ -6,6 +6,8 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use App\Models\User;
 
 class LoginController extends Controller
 {
@@ -21,7 +23,9 @@ class LoginController extends Controller
             'password' => ['required'],
         ]);
 
-        if (!Auth::attempt($credentials)) {
+        $user = User::where('email', $credentials['email'])->first();
+
+        if (!$user || !Hash::check($credentials['password'], $user->password)) {
             if ($request->expectsJson()) {
                 return response()->json([
                     'message' => 'Invalid email or password.'
@@ -32,11 +36,11 @@ class LoginController extends Controller
             ])->onlyInput('email');
         }
 
-        $request->session()->regenerate();
-        $user = Auth::user();
+        $token = $user->createToken('auth-token')->plainTextToken;
 
         if ($request->expectsJson()) {
             return response()->json([
+                'token' => $token,
                 'user' => [
                     'id'             => $user->id,
                     'name'           => $user->name ?? $user->full_name,
@@ -53,7 +57,8 @@ class LoginController extends Controller
             ]);
         }
 
-        // Blade fallback
+        // Blade fallback (kept for completeness, though likely unused now)
+        Auth::login($user);
         if ($user->role === 'admin') {
             return redirect()->route('admin.dashboard');
         }
@@ -62,9 +67,9 @@ class LoginController extends Controller
 
     public function logout(Request $request)
     {
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        if ($request->user()) {
+            $request->user()->currentAccessToken()->delete();
+        }
 
         if ($request->expectsJson()) {
             return response()->json(['message' => 'Logged out successfully.']);

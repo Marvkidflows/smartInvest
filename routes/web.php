@@ -55,16 +55,7 @@ Route::middleware('guest')->group(function () {
     Route::get('/login',  [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [LoginController::class, 'login'])->name('login.submit');
 
-    Route::get('/debug-session-config', function () {
-    return response()->json([
-        'env_same_site'    => env('SESSION_SAME_SITE'),
-        'config_same_site' => config('session.same_site'),
-        'env_secure'       => env('SESSION_SECURE_COOKIE'),
-        'config_secure'    => config('session.secure'),
-        'config_driver'    => config('session.driver'),
-        'app_env'          => config('app.env'),
-    ]);
-});
+    
     Route::get('/register',         [RegisterController::class, 'showStage1'])->name('register');
     Route::post('/register/stage1', [RegisterController::class, 'submitStage1'])->name('register.stage1.submit');
 

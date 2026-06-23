@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\InvestmentAccount;
 use App\Models\Deposit;
 use App\Models\Withdrawal;
+use App\Models\BalanceAdjustment;
 use Illuminate\Http\Request;
 
 class AdminUserController extends Controller
@@ -83,6 +84,22 @@ class AdminUserController extends Controller
                 'created_at' => $w->created_at->toDateString(),
             ]);
 
+        $balanceHistory = BalanceAdjustment::where('user_id', $user->id)
+            ->with('admin:id,name')
+            ->latest()
+            ->take(20)
+            ->get()
+            ->map(fn($b) => [
+                'id'             => $b->id,
+                'type'           => $b->type,
+                'amount'         => (float) $b->amount,
+                'balance_before' => (float) $b->balance_before,
+                'balance_after'  => (float) $b->balance_after,
+                'reason'         => $b->reason,
+                'admin_name'     => $b->admin->name ?? 'System',
+                'created_at'     => $b->created_at->toDateTimeString(),
+            ]);
+
         $data = [
             'user' => [
                 'id'             => $user->id,
@@ -90,7 +107,7 @@ class AdminUserController extends Controller
                 'email'          => $user->email,
                 'phone'          => $user->phone ?? null,
                 'country'        => $user->country ?? null,
-                'address'        => $user->address ?? null,
+                'address'        => $user->residential_address ?? null,
                 'city'           => $user->city ?? null,
                 'balance'        => (float) ($user->balance ?? 0),
                 'total_invested' => (float) $investments->sum('amount'),
@@ -100,9 +117,10 @@ class AdminUserController extends Controller
                 'created_at'     => $user->created_at->toDateString(),
                 'last_login_at'  => $user->last_login_at ?? null,
             ],
-            'investments' => $investments,
-            'deposits'    => $deposits,
-            'withdrawals' => $withdrawals,
+            'investments'     => $investments,
+            'deposits'        => $deposits,
+            'withdrawals'     => $withdrawals,
+            'balance_history' => $balanceHistory,
         ];
 
         if ($request->expectsJson()) {
@@ -118,10 +136,12 @@ class AdminUserController extends Controller
             'name'    => ['sometimes', 'string', 'max:255'],
             'email'   => ['sometimes', 'email', 'unique:users,email,' . $user->id],
             'phone'   => ['sometimes', 'string', 'max:20'],
-            'balance' => ['sometimes', 'numeric', 'min:0'],
-            'status'  => ['sometimes', 'in:active,suspended,inactive'],
+            'status'  => ['sometimes', 'in:active,suspended,inactive,frozen'],
             'country' => ['sometimes', 'string', 'max:100'],
         ]);
+
+        // NOTE: balance is intentionally excluded here.
+        // All balance changes must go through adjustBalance() so they're audited.
 
         $user->update($validated);
 
@@ -154,5 +174,83 @@ class AdminUserController extends Controller
             return response()->json(['message' => 'Investor activated.', 'status' => 'active']);
         }
         return back()->with('success', 'Investor activated.');
+    }
+
+    // POST /admin/users/{user}/balance
+    public function adjustBalance(Request $request, User $user)
+    {
+        $validated = $request->validate([
+            'type'   => ['required', 'in:add,deduct,freeze,unfreeze,reset'],
+            'amount' => ['required_if:type,add,deduct', 'nullable', 'numeric', 'min:0.01'],
+            'reason' => ['required', 'string', 'max:500'],
+        ]);
+
+        $balanceBefore = (float) ($user->balance ?? 0);
+        $amount        = (float) ($validated['amount'] ?? 0);
+        $balanceAfter  = $balanceBefore;
+
+        switch ($validated['type']) {
+            case 'add':
+                $balanceAfter   = $balanceBefore + $amount;
+                $user->balance  = $balanceAfter;
+                $user->save();
+                break;
+
+            case 'deduct':
+                if ($amount > $balanceBefore) {
+                    return response()->json([
+                        'message' => 'Cannot deduct more than the current balance.',
+                    ], 422);
+                }
+                $balanceAfter   = $balanceBefore - $amount;
+                $user->balance  = $balanceAfter;
+                $user->save();
+                break;
+
+            case 'freeze':
+                $user->status = 'frozen';
+                $user->save();
+                break;
+
+            case 'unfreeze':
+                $user->status = 'active';
+                $user->save();
+                break;
+
+            case 'reset':
+                $balanceAfter   = 0;
+                $user->balance  = 0;
+                $user->save();
+                break;
+        }
+
+        $adjustment = BalanceAdjustment::create([
+            'user_id'        => $user->id,
+            'admin_id'       => $request->user()->id,
+            'type'           => $validated['type'],
+            'amount'         => $amount,
+            'balance_before' => $balanceBefore,
+            'balance_after'  => $balanceAfter,
+            'reason'         => $validated['reason'],
+        ]);
+
+        return response()->json([
+            'message' => 'Balance adjustment applied successfully.',
+            'user'    => [
+                'id'      => $user->id,
+                'balance' => (float) $user->balance,
+                'status'  => $user->status,
+            ],
+            'adjustment' => [
+                'id'             => $adjustment->id,
+                'type'           => $adjustment->type,
+                'amount'         => (float) $adjustment->amount,
+                'balance_before' => (float) $adjustment->balance_before,
+                'balance_after'  => (float) $adjustment->balance_after,
+                'reason'         => $adjustment->reason,
+                'admin_name'     => $request->user()->name,
+                'created_at'     => $adjustment->created_at->toDateTimeString(),
+            ],
+        ]);
     }
 }

@@ -59,20 +59,26 @@ class InvestorInvestmentController extends Controller
     public function plans(Request $request)
     {
         $plans = InvestmentPlan::where('status', 'active')
+            ->with('sectorCategory.sector')
             ->orderBy('min_amount')
             ->get()
             ->map(fn($p) => [
-                'id'             => $p->id,
-                'name'           => $p->name,
-                'description'    => $p->description ?? null,
-                'min_amount'     => (float) $p->min_amount,
-                'max_amount'     => $p->max_amount ? (float) $p->max_amount : null,
-                'profit_percent' => (float) ($p->profit_percentage ?? $p->profit_percent ?? 0),
-                'roi_percent'    => (float) ($p->profit_percentage ?? $p->profit_percent ?? 0),
-                'duration_days'  => $p->duration_days ?? (($p->duration_months ?? 1) * 30),
-                'duration_months'=> $p->duration_months ?? null,
-                'is_featured'    => (bool) ($p->is_featured ?? false),
-                'status'         => $p->status ?? 'active',
+                'id'                   => $p->id,
+                'name'                 => $p->name,
+                'description'          => $p->description ?? null,
+                'sector_category_id'   => $p->sector_category_id,
+                'sector_category_name' => $p->sectorCategory->name ?? null,
+                'sector_id'            => $p->sectorCategory->sector->id ?? null,
+                'sector_name'          => $p->sectorCategory->sector->name ?? null,
+                'sector_icon'          => $p->sectorCategory->sector->icon ?? null,
+                'min_amount'           => (float) $p->min_amount,
+                'max_amount'           => $p->max_amount ? (float) $p->max_amount : null,
+                'profit_percent'       => (float) ($p->profit_percentage ?? $p->profit_percent ?? 0),
+                'roi_percent'          => (float) ($p->profit_percentage ?? $p->profit_percent ?? 0),
+                'duration_days'        => $p->duration_days ?? (($p->duration_months ?? 1) * 30),
+                'duration_months'      => $p->duration_months ?? null,
+                'is_featured'          => (bool) ($p->is_featured ?? false),
+                'status'               => $p->status ?? 'active',
             ]);
 
         if ($request->expectsJson()) {
@@ -134,6 +140,7 @@ class InvestorInvestmentController extends Controller
         $durationDays   = $plan->duration_days ?? (($plan->duration_months ?? 1) * 30);
         $profitPercent  = $plan->profit_percentage ?? $plan->profit_percent ?? 0;
         $expectedProfit = $validated['amount'] * ($profitPercent / 100);
+        $totalReturn    = $validated['amount'] + $expectedProfit;
 
         // Create investment
         $investment = InvestmentAccount::create([
@@ -142,6 +149,7 @@ class InvestorInvestmentController extends Controller
             'amount'             => $validated['amount'],
             'profit_percentage'  => $profitPercent,
             'expected_profit'    => $expectedProfit,
+            'total_return'       => $totalReturn,
             'status'             => 'active',
             'start_date'         => now(),
             'end_date'           => now()->addDays($durationDays),

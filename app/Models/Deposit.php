@@ -12,23 +12,22 @@ class Deposit extends Model
 
     protected $fillable = [
         'user_id',
+        'investment_plan_id',
         'amount',
         'payment_method',
-        'method',
         'transaction_reference',
-        'reference',
+        'proof_image',
         'status',
-        'notes',
-        'reject_reason',
-        'approved_at',
-        'rejected_at',
-        'approved_by',
+        'admin_notes',
+        'processed_at',
+        'processed_by',
+        'held_at',
     ];
 
     protected $casts = [
-        'amount'      => 'decimal:2',
-        'approved_at' => 'datetime',
-        'rejected_at' => 'datetime',
+        'amount'       => 'decimal:2',
+        'processed_at' => 'datetime',
+        'held_at'      => 'datetime',
     ];
 
     // ── RELATIONSHIPS ──────────────────────────────────────────────────────
@@ -38,9 +37,14 @@ class Deposit extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function approver()
+    public function investmentPlan()
     {
-        return $this->belongsTo(User::class, 'approved_by');
+        return $this->belongsTo(InvestmentPlan::class);
+    }
+
+    public function processedBy()
+    {
+        return $this->belongsTo(User::class, 'processed_by');
     }
 
     // ── SCOPES ─────────────────────────────────────────────────────────────
@@ -60,6 +64,11 @@ class Deposit extends Model
         return $query->where('status', 'rejected');
     }
 
+    public function scopeOnHold($query)
+    {
+        return $query->where('status', 'hold');
+    }
+
     public function scopeForUser($query, $userId)
     {
         return $query->where('user_id', $userId);
@@ -75,17 +84,5 @@ class Deposit extends Model
     public function isApproved(): bool
     {
         return $this->status === 'approved';
-    }
-
-    // Get payment method (handles both column names)
-    public function getMethodNameAttribute(): string
-    {
-        return $this->payment_method ?? $this->method ?? 'N/A';
-    }
-
-    // Get reference (handles both column names)
-    public function getReferenceNumberAttribute(): ?string
-    {
-        return $this->transaction_reference ?? $this->reference;
     }
 }

@@ -13,6 +13,7 @@ class InvestmentPlan extends Model
     protected $fillable = [
         'name',
         'description',
+        'sector_category_id',
         'min_amount',
         'max_amount',
         'profit_percentage',
@@ -42,6 +43,24 @@ class InvestmentPlan extends Model
     public function activeInvestments()
     {
         return $this->hasMany(InvestmentAccount::class)->where('status', 'active');
+    }
+
+    public function sectorCategory()
+    {
+        return $this->belongsTo(SectorCategory::class, 'sector_category_id');
+    }
+
+    // Convenience accessor straight to the parent sector through the category
+    public function sector()
+    {
+        return $this->hasOneThrough(
+            Sector::class,
+            SectorCategory::class,
+            'id',                  // sector_categories.id
+            'id',                  // sectors.id
+            'sector_category_id',  // investment_plans.sector_category_id
+            'sector_id'            // sector_categories.sector_id
+        );
     }
 
     // ── HELPERS ────────────────────────────────────────────────────────────

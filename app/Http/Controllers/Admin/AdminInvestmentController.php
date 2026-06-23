@@ -20,6 +20,7 @@ class AdminInvestmentController extends Controller
                 'amount'         => (float) $i->amount,
                 'profit_percent' => $i->investmentPlan->profit_percentage ?? 0,
                 'expected_profit'=> (float) ($i->expected_profit ?? 0),
+                'total_return'   => (float) ($i->total_return ?? 0),
                 'status'         => $i->status,
                 'start_date'     => optional($i->start_date)->toDateString(),
                 'end_date'       => optional($i->end_date)->toDateString(),
@@ -51,6 +52,7 @@ class AdminInvestmentController extends Controller
             'amount'          => (float) $investment->amount,
             'profit_percent'  => $investment->investmentPlan->profit_percentage ?? 0,
             'expected_profit' => (float) ($investment->expected_profit ?? 0),
+            'total_return'    => (float) ($investment->total_return ?? 0),
             'status'          => $investment->status,
             'start_date'      => optional($investment->start_date)->toDateString(),
             'end_date'        => optional($investment->end_date)->toDateString(),
@@ -69,8 +71,7 @@ class AdminInvestmentController extends Controller
     public function complete(Request $request, InvestmentAccount $investment)
     {
         $investment->update([
-            'status'       => 'completed',
-            'completed_at' => now(),
+            'status' => 'completed',
         ]);
 
         // Credit profit to user's balance

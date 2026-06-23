@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+   'telegram' => [
+    'bot_token'      => env('TELEGRAM_BOT_TOKEN'),
+    'chat_id'        => env('TELEGRAM_CHAT_ID'),
+    'agent_name'     => env('TELEGRAM_AGENT_NAME', 'Agent Frank'),
+    'agent_username' => env('TELEGRAM_AGENT_USERNAME', 'Agentlanfrank'),
+],
 ];

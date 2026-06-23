@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Withdrawal;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class InvestorWithdrawalController extends Controller
 {
@@ -18,15 +19,13 @@ class InvestorWithdrawalController extends Controller
             ->latest()
             ->get()
             ->map(fn($w) => [
-                'id'             => $w->id,
-                'amount'         => (float) $w->amount,
-                'method'         => $w->method ?? $w->withdrawal_method ?? 'N/A',
-                'wallet_address' => $w->wallet_address ?? null,
-                'bank_name'      => $w->bank_name ?? null,
-                'account_number' => $w->account_number ?? null,
-                'status'         => $w->status,
-                'created_at'     => $w->created_at->toDateString(),
-                'approved_at'    => optional($w->approved_at)->toDateString(),
+                'id'              => $w->id,
+                'amount'          => (float) $w->amount,
+                'method'          => $w->method,
+                'account_details' => $w->account_details_array,
+                'status'          => $w->status,
+                'created_at'      => $w->created_at->toDateString(),
+                'processed_at'    => optional($w->processed_at)->toDateString(),
             ]);
 
         if ($request->expectsJson()) {
@@ -43,6 +42,7 @@ class InvestorWithdrawalController extends Controller
         if ($request->expectsJson()) {
             return response()->json([
                 'available_balance' => (float) ($user->balance ?? 0),
+                'has_pin'           => (bool) $user->withdrawal_pin,
             ]);
         }
         return view('investor.withdrawals.create', compact('user'));
@@ -53,6 +53,17 @@ class InvestorWithdrawalController extends Controller
     {
         $user = Auth::user();
 
+        // Withdrawal PIN must exist before any withdrawal can be requested.
+        if (!$user->withdrawal_pin) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Please set up a withdrawal PIN before requesting a withdrawal.',
+                    'code'    => 'PIN_NOT_SET',
+                ], 422);
+            }
+            return back()->withErrors(['error' => 'Please set up a withdrawal PIN first.']);
+        }
+
         $validated = $request->validate([
             'amount'         => ['required', 'numeric', 'min:10'],
             'method'         => ['required', 'string', 'in:bitcoin,ethereum,usdt,bank_transfer'],
@@ -60,7 +71,19 @@ class InvestorWithdrawalController extends Controller
             'bank_name'      => ['required_if:method,bank_transfer', 'nullable', 'string', 'max:100'],
             'account_number' => ['required_if:method,bank_transfer', 'nullable', 'string', 'max:50'],
             'account_name'   => ['required_if:method,bank_transfer', 'nullable', 'string', 'max:100'],
+            'withdrawal_pin' => ['required', 'digits:4'],
         ]);
+
+        // Verify the submitted PIN
+        if (!Hash::check($validated['withdrawal_pin'], $user->withdrawal_pin)) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Incorrect withdrawal PIN.',
+                    'code'    => 'PIN_INCORRECT',
+                ], 422);
+            }
+            return back()->withErrors(['withdrawal_pin' => 'Incorrect withdrawal PIN.']);
+        }
 
         // Check balance
         if ($user->balance < $validated['amount']) {
@@ -86,16 +109,23 @@ class InvestorWithdrawalController extends Controller
             return back()->withErrors(['amount' => 'You already have a pending withdrawal.']);
         }
 
+        // Consolidate destination details into a single JSON column
+        $accountDetails = $validated['method'] === 'bank_transfer'
+            ? [
+                'bank_name'      => $validated['bank_name'],
+                'account_number' => $validated['account_number'],
+                'account_name'   => $validated['account_name'],
+              ]
+            : [
+                'wallet_address' => $validated['wallet_address'],
+              ];
+
         $withdrawal = Withdrawal::create([
-            'user_id'        => $user->id,
-            'amount'         => $validated['amount'],
-            'method'         => $validated['method'],
-            'withdrawal_method' => $validated['method'],
-            'wallet_address' => $validated['wallet_address'] ?? null,
-            'bank_name'      => $validated['bank_name'] ?? null,
-            'account_number' => $validated['account_number'] ?? null,
-            'account_name'   => $validated['account_name'] ?? null,
-            'status'         => 'pending',
+            'user_id'         => $user->id,
+            'amount'          => $validated['amount'],
+            'method'          => $validated['method'],
+            'account_details' => json_encode($accountDetails),
+            'status'          => 'pending',
         ]);
 
         if ($request->expectsJson()) {

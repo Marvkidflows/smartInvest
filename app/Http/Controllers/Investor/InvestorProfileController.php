@@ -37,6 +37,16 @@ class InvestorProfileController extends Controller
                 'profile_photo'  => $user->profile_photo_url
                                     ?? $user->avatar
                                     ?? null,
+
+                // ── KYC ──────────────────────────────────────────────────
+                'id_type'              => $user->id_type ?? null,
+                'id_number'            => $user->id_number ?? null,
+                'has_id_document'      => (bool) $user->id_document_path,
+                'has_selfie'           => (bool) $user->selfie_path,
+                'kyc_status'           => $user->kyc_status_safe,
+                'kyc_verified'         => (bool) $user->kyc_verified,
+                'kyc_verified_at'      => optional($user->kyc_verified_at)->toDateTimeString(),
+                'kyc_rejection_reason' => $user->kyc_rejection_reason ?? null,
             ],
         ];
 
@@ -107,5 +117,40 @@ class InvestorProfileController extends Controller
         }
 
         return back()->with('success', 'Profile updated.');
+    }
+
+    // POST /investor-investment/investor/profile/kyc
+    public function submitKyc(Request $request)
+    {
+        $user = Auth::user();
+
+        $validated = $request->validate([
+            'id_type'      => ['required', 'in:national_id,passport,drivers_license'],
+            'id_number'    => ['required', 'string', 'max:100'],
+            'id_document'  => ['required', 'image', 'max:5120'], // 5MB
+            'selfie'       => ['required', 'image', 'max:5120'],
+        ]);
+
+        $documentPath = $request->file('id_document')->store('kyc-documents', 'public');
+        $selfiePath   = $request->file('selfie')->store('kyc-selfies', 'public');
+
+        $user->update([
+            'id_type'              => $validated['id_type'],
+            'id_number'            => $validated['id_number'],
+            'id_document_path'     => $documentPath,
+            'selfie_path'          => $selfiePath,
+            'kyc_status'           => 'pending',
+            'kyc_verified'         => false,
+            'kyc_verified_at'      => null,
+            'kyc_rejection_reason' => null,
+        ]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message'    => 'Verification documents submitted. Your profile is now under review.',
+                'kyc_status' => 'pending',
+            ]);
+        }
+        return back()->with('success', 'Verification documents submitted.');
     }
 }

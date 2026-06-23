@@ -16,20 +16,20 @@ class InvestmentAccount extends Model
         'amount',
         'profit_percentage',
         'expected_profit',
+        'total_return',
         'start_date',
         'end_date',
         'remaining_days',
         'status',
-        'completed_at',
     ];
 
     protected $casts = [
         'amount'            => 'decimal:2',
         'profit_percentage' => 'decimal:2',
         'expected_profit'   => 'decimal:2',
+        'total_return'      => 'decimal:2',
         'start_date'        => 'date',
         'end_date'          => 'date',
-        'completed_at'      => 'datetime',
     ];
 
     // ── RELATIONSHIPS ──────────────────────────────────────────────────────

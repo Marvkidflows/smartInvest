@@ -45,6 +45,15 @@ class User extends Authenticatable
         'profile_photo',
         'avatar',
         'last_login_at',
+        // KYC
+        'id_type',
+        'id_number',
+        'id_document_path',
+        'selfie_path',
+        'kyc_status',
+        'kyc_verified',
+        'kyc_verified_at',
+        'kyc_rejection_reason',
     ];
 
     protected $hidden = [
@@ -60,6 +69,8 @@ class User extends Authenticatable
         'balance'                 => 'decimal:2',
         'registration_completed'  => 'boolean',
         'two_factor_enabled'      => 'boolean',
+        'kyc_verified'            => 'boolean',
+        'kyc_verified_at'         => 'datetime',
     ];
 
     // ── RELATIONSHIPS ──────────────────────────────────────────────────────
@@ -144,5 +155,11 @@ class User extends Authenticatable
     public function getActiveInvestmentsCountAttribute(): int
     {
         return $this->investmentAccounts()->where('status', 'active')->count();
+    }
+
+    // KYC status, derived defensively in case of legacy null/blank values
+    public function getKycStatusSafeAttribute(): string
+    {
+        return $this->kyc_status ?: ($this->id_document_path ? 'pending' : 'not_submitted');
     }
 }

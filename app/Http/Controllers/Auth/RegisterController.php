@@ -5,12 +5,20 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\OtpService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class RegisterController extends Controller
 {
+    protected OtpService $otpService;
+
+    public function __construct(OtpService $otpService)
+    {
+        $this->otpService = $otpService;
+    }
+
     // =========================================================================
     // STAGE 1 — Personal Info + Email + Password
     // =========================================================================
@@ -55,19 +63,35 @@ class RegisterController extends Controller
             'status'                  => 'active',
         ]);
 
-        // Issue a token so the user can authenticate through stages 2-4
+        try {
+            app(\App\Services\TelegramService::class)->newRegistration(
+                $validated['full_name'],
+                $validated['email']
+            );
+        } catch (\Exception $e) {
+            \Log::error('Telegram notification failed: '.$e->getMessage());
+        }
+
+        // Send the email verification OTP right away
+        try {
+            $this->otpService->generateAndSend($user);
+        } catch (\Exception $e) {
+            \Log::error('OTP send failed during registration: '.$e->getMessage());
+        }
+
+        // Issue a token so the user can authenticate through OTP + stages 2-4
         $token = $user->createToken('registration')->plainTextToken;
 
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Stage 1 complete.',
+                'message' => 'Stage 1 complete. Verification code sent to your email.',
                 'token'   => $token,
-                'user'    => ['id' => $user->id],
+                'user'    => ['id' => $user->id, 'email' => $user->email],
             ]);
         }
-        return redirect()->route('register.stage2')
-            ->with('success', 'Account created! Please complete your profile.');
+        return redirect()->route('register.verify-email')
+            ->with('success', 'Account created! Please verify your email.');
     }
 
     // =========================================================================
@@ -81,6 +105,17 @@ class RegisterController extends Controller
     public function submitStage2(Request $request)
     {
         $user = $request->user();
+
+        if (!$user->email_verified_at) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please verify your email before continuing.',
+                ], 403);
+            }
+            return redirect()->route('register.verify-email')
+                ->withErrors(['error' => 'Please verify your email first.']);
+        }
 
         $validated = $request->validate([
             'date_of_birth'      => ['required', 'date', 'before:-18 years'],

@@ -1,73 +1,79 @@
 <?php
+// LOCATION: app/Models/Withdrawal.php
+
 namespace App\Models;
+
 use Illuminate\Database\Eloquent\Model;
 
 class Withdrawal extends Model
 {
     protected $fillable = [
-        'user_id', 'amount', 'method', 'account_details',
-        'status', 'admin_notes', 'processed_at', 'processed_by'
+        'user_id',
+        'amount',
+        'method',
+        'account_details',
+        'status',
+        'admin_notes',
+        'processed_at',
+        'processed_by',
+        'held_at',
     ];
 
     protected $casts = [
-        'amount' => 'decimal:2',
+        'amount'       => 'decimal:2',
         'processed_at' => 'datetime',
+        'held_at'      => 'datetime',
     ];
+
+    // ── RELATIONSHIPS ──────────────────────────────────────────────────────
 
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    public function approveWithdrawal()
+    public function processedBy()
     {
-        // Deduct from user balance
-        $this->user->decrement('balance', $this->amount);
-        $this->user->decrement('locked_balance', $this->amount);
-
-        // Create transaction
-        Transaction::create([
-            'user_id' => $this->user_id,
-            'type' => 'withdrawal',
-            'amount' => $this->amount,
-            'method' => $this->method,
-            'status' => 'completed',
-            'description' => "Withdrawal via {$this->method}",
-        ]);
-
-        // Update status
-        $this->update([
-            'status' => 'completed',
-            'processed_at' => now(),
-            'processed_by' => auth()->id(),
-        ]);
-
-        // Notification
-        Notification::create([
-            'user_id' => $this->user_id,
-            'title' => 'Withdrawal Approved!',
-            'message' => "Your withdrawal of \${$this->amount} has been approved and will be sent to {$this->method}.",
-            'type' => 'success',
-        ]);
+        return $this->belongsTo(User::class, 'processed_by');
     }
 
-    public function rejectWithdrawal($reason)
+    // ── SCOPES ─────────────────────────────────────────────────────────────
+
+    public function scopePending($query)
     {
-        // Unlock balance
-        $this->user->decrement('locked_balance', $this->amount);
+        return $query->where('status', 'pending');
+    }
 
-        $this->update([
-            'status' => 'rejected',
-            'admin_notes' => $reason,
-            'processed_at' => now(),
-            'processed_by' => auth()->id(),
-        ]);
+    public function scopeApproved($query)
+    {
+        return $query->where('status', 'approved');
+    }
 
-        Notification::create([
-            'user_id' => $this->user_id,
-            'title' => 'Withdrawal Rejected',
-            'message' => "Your withdrawal request has been rejected. Reason: {$reason}",
-            'type' => 'error',
-        ]);
+    public function scopeRejected($query)
+    {
+        return $query->where('status', 'rejected');
+    }
+
+    public function scopeOnHold($query)
+    {
+        return $query->where('status', 'hold');
+    }
+
+    // ── HELPERS ────────────────────────────────────────────────────────────
+
+    // account_details is stored as JSON; this decodes it back into an array
+    // for display (e.g. ['wallet_address' => '...'] or ['bank_name' => '...', 'account_number' => '...']).
+    public function getAccountDetailsArrayAttribute(): array
+    {
+        if (!$this->account_details) {
+            return [];
+        }
+        $decoded = json_decode($this->account_details, true);
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    public function isPending(): bool
+    {
+        return $this->status === 'pending';
     }
 }

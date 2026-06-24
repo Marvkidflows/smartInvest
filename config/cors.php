@@ -1,10 +1,10 @@
 <?php
+
 return [
     'paths'                    => ['api/*', 'sanctum/csrf-cookie', '*'],
     'allowed_methods'          => ['*'],
     'allowed_origins'          => [
-        'https://smart-investment-three.vercel.app/',
-        'http://localhost:5173'
+        'https://smart-investment-three.vercel.app',
     ],
     'allowed_origins_patterns' => [],
     'allowed_headers'          => ['*'],

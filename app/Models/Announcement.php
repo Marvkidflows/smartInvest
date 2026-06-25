@@ -1,4 +1,5 @@
 <?php
+// LOCATION: app/Models/Announcement.php
 
 namespace App\Models;
 
@@ -10,12 +11,14 @@ class Announcement extends Model
         'title',
         'content',
         'type',
+        'is_popup',
         'is_active',
-        'created_by'
+        'created_by',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'is_popup'  => 'boolean',
     ];
 
     public function creator()

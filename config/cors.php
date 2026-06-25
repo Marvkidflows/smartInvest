@@ -5,6 +5,7 @@ return [
     'allowed_methods'          => ['*'],
     'allowed_origins'          => [
         'https://smart-investment-three.vercel.app',
+        'http://localhost:5173'
     ],
     'allowed_origins_patterns' => [],
     'allowed_headers'          => ['*'],

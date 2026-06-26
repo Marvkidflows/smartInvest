@@ -9,7 +9,8 @@
         "php": "^8.2",
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.3",
-        "laravel/tinker": "^2.10.1"
+        "laravel/tinker": "^2.10.1",
+        "symfony/brevo-mailer": "^8.1"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
@@ -73,17 +74,23 @@
     "extra": {
         "laravel": {
             "dont-discover": []
-        }
+        },
+        "composer-block-insecure": false
     },
-    "config": {
-        "optimize-autoloader": true,
-        "preferred-install": "dist",
-        "sort-packages": true,
-        "allow-plugins": {
-            "pestphp/pest-plugin": true,
-            "php-http/discovery": true
-        }
+"config": {
+    "optimize-autoloader": true,
+    "preferred-install": "dist",
+    "sort-packages": true,
+    "allow-plugins": {
+        "pestphp/pest-plugin": true,
+        "php-http/discovery": true
     },
+    "audit": {
+        "ignore": ["PKSA-93qv-9n9h-6k6p", "PKSA-k22t-f949-t9g6"],
+        "abandoned": "report",
+        "block-insecure": false
+    }
+},
     "minimum-stability": "stable",
     "prefer-stable": true
 }

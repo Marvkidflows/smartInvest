@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 // Auth
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 
 // Shared
@@ -43,6 +44,8 @@ use App\Http\Controllers\Investor\WithdrawalPinController;
 */
 Route::post('/register/stage1', [RegisterController::class, 'submitStage1']);
 Route::post('/login',           [LoginController::class, 'login']);
+Route::post('/forgot-password', [PasswordResetController::class, 'forgotPassword']);
+Route::post('/reset-password', [PasswordResetController::class, 'resetPassword']);
 
 /*
 |--------------------------------------------------------------------------

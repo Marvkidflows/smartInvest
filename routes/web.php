@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\LoginController;
-
+use App\Http\Controllers\Auth\PasswordResetController;
 /*
 |--------------------------------------------------------------------------
 | PUBLIC PAGES (Blade)
@@ -25,6 +25,8 @@ Route::post('/contact',     [HomeController::class, 'contactSubmit'])->name('con
 |--------------------------------------------------------------------------
 */
 Route::get('/login',           [LoginController::class, 'showLoginForm'])->name('login');
+Route::post('/forgot-password', [PasswordResetController::class, 'forgotPassword']);
+Route::post('/reset-password', [PasswordResetController::class, 'resetPassword']);
 Route::get('/register',        [RegisterController::class, 'showStage1'])->name('register');
 Route::get('/register/verify-email', [RegisterController::class, 'showStage1'])->name('register.verify-email');
 Route::get('/register/stage2', [RegisterController::class, 'showStage2'])->name('register.stage2');

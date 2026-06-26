@@ -52,6 +52,9 @@ return [
         parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)
     ),
 ],
+     'brevo' => [
+    'transport' => 'brevo',
+],
 
         'ses' => [
             'transport' => 'ses',

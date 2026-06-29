@@ -6,7 +6,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class AdminKycController extends Controller
 {
@@ -14,26 +13,31 @@ class AdminKycController extends Controller
     public function index(Request $request)
     {
         $query = User::where('role', 'investor')
-            ->whereNotNull('id_document_path'); // only investors who have actually submitted something
+            ->whereNotNull('id_document_path');
 
         if ($request->filled('status')) {
             $query->where('kyc_status', $request->status);
         }
 
-        $submissions = $query->latest('updated_at')->get()->map(fn($u) => [
-            'id'                => $u->id,
-            'name'              => $u->name ?? $u->full_name,
-            'email'             => $u->email,
-            'id_type'           => $u->id_type,
-            'id_number'         => $u->id_number,
-            'kyc_status'        => $u->kyc_status_safe,
-            'submitted_at'      => optional($u->updated_at)->toDateTimeString(),
-            'kyc_verified_at'   => optional($u->kyc_verified_at)->toDateTimeString(),
-        ]);
+        $submissions = $query->latest('updated_at')->get()->map(function ($u) {
+            return [
+                'id'              => $u->id,
+                'name'            => $u->name ?? $u->full_name,
+                'email'           => $u->email,
+                'id_type'         => $u->id_type,
+                'id_number'       => $u->id_number,
+                'kyc_status'      => $u->kyc_status_safe,
+                'submitted_at'    => optional($u->updated_at)->toDateTimeString(),
+                'kyc_verified_at' => optional($u->kyc_verified_at)->toDateTimeString(),
+            ];
+        });
 
         if ($request->expectsJson()) {
-            return response()->json(['submissions' => $submissions]);
+            return response()->json([
+                'submissions' => $submissions
+            ]);
         }
+
         return view('admin.kyc.index', compact('submissions'));
     }
 
@@ -41,29 +45,37 @@ class AdminKycController extends Controller
     public function show(Request $request, User $user)
     {
         $data = [
-            'id'                    => $user->id,
-            'name'                  => $user->name ?? $user->full_name,
-            'email'                 => $user->email,
-            'phone'                 => $user->phone,
-            'country'               => $user->country,
-            'address'               => $user->address,
-            'city'                  => $user->city,
-            'state'                 => $user->state,
-            'date_of_birth'         => optional($user->date_of_birth)->toDateString(),
-            'id_type'               => $user->id_type,
-            'id_number'             => $user->id_number,
-            'id_document_url'       => $user->id_document_path ? Storage::disk('public')->url($user->id_document_path) : null,
-            'selfie_url'            => $user->selfie_path ? Storage::disk('public')->url($user->selfie_path) : null,
-            'kyc_status'            => $user->kyc_status_safe,
-            'kyc_verified_at'       => optional($user->kyc_verified_at)->toDateTimeString(),
-            'kyc_rejection_reason'  => $user->kyc_rejection_reason,
+            'id'                   => $user->id,
+            'name'                 => $user->name ?? $user->full_name,
+            'email'                => $user->email,
+            'phone'                => $user->phone,
+            'country'              => $user->country,
+            'address'              => $user->address,
+            'city'                 => $user->city,
+            'state'                => $user->state,
+            'date_of_birth'        => optional($user->date_of_birth)->toDateString(),
+            'id_type'              => $user->id_type,
+            'id_number'            => $user->id_number,
+
+            // Cloudinary URLs
+            'id_document_url'      => $user->id_document_path,
+            'selfie_url'           => $user->selfie_path,
+
+            'kyc_status'           => $user->kyc_status_safe,
+            'kyc_verified_at'      => optional($user->kyc_verified_at)->toDateTimeString(),
+            'kyc_rejection_reason' => $user->kyc_rejection_reason,
         ];
 
         if ($request->expectsJson()) {
-            return response()->json(['submission' => $data]);
+            return response()->json([
+                'submission' => $data
+            ]);
         }
+
         return view('admin.kyc.show', compact('user'));
     }
+
+
 
     // POST /admin/kyc/{user}/approve
     public function approve(Request $request, User $user)

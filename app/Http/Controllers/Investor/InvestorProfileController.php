@@ -7,6 +7,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Cloudinary\Cloudinary;
+use Illuminate\Support\Facades\Storage;
 
 class InvestorProfileController extends Controller
 {
@@ -120,37 +122,49 @@ class InvestorProfileController extends Controller
     }
 
     // POST /investor-investment/investor/profile/kyc
-    public function submitKyc(Request $request)
-    {
-        $user = Auth::user();
+   
 
-        $validated = $request->validate([
-            'id_type'      => ['required', 'in:national_id,passport,drivers_license'],
-            'id_number'    => ['required', 'string', 'max:100'],
-            'id_document'  => ['required', 'image', 'max:5120'], // 5MB
-            'selfie'       => ['required', 'image', 'max:5120'],
-        ]);
+public function submitKyc(Request $request)
+{
+    $user = Auth::user();
 
-        $documentPath = $request->file('id_document')->store('kyc-documents', 'public');
-        $selfiePath   = $request->file('selfie')->store('kyc-selfies', 'public');
+    $validated = $request->validate([
+        'id_type'      => 'required|in:national_id,passport,drivers_license',
+        'id_number'    => 'required|string|max:100',
+        'id_document'  => 'required|image|max:5120',
+        'selfie'       => 'required|image|max:5120',
+    ]);
 
-        $user->update([
-            'id_type'              => $validated['id_type'],
-            'id_number'            => $validated['id_number'],
-            'id_document_path'     => $documentPath,
-            'selfie_path'          => $selfiePath,
-            'kyc_status'           => 'pending',
-            'kyc_verified'         => false,
-            'kyc_verified_at'      => null,
-            'kyc_rejection_reason' => null,
-        ]);
+    $cloudinary = new Cloudinary(env('CLOUDINARY_URL'));
 
-        if ($request->expectsJson()) {
-            return response()->json([
-                'message'    => 'Verification documents submitted. Your profile is now under review.',
-                'kyc_status' => 'pending',
-            ]);
-        }
-        return back()->with('success', 'Verification documents submitted.');
-    }
+    $document = $cloudinary->uploadApi()->upload(
+        $request->file('id_document')->getRealPath(),
+        [
+            'folder' => 'kyc-documents',
+        ]
+    );
+
+    $selfie = $cloudinary->uploadApi()->upload(
+        $request->file('selfie')->getRealPath(),
+        [
+            'folder' => 'kyc-selfies',
+        ]
+    );
+
+    $user->update([
+        'id_type'              => $validated['id_type'],
+        'id_number'            => $validated['id_number'],
+        'id_document_path'     => $document['secure_url'],
+        'selfie_path'          => $selfie['secure_url'],
+        'kyc_status'           => 'pending',
+        'kyc_verified'         => false,
+        'kyc_verified_at'      => null,
+        'kyc_rejection_reason' => null,
+    ]);
+
+    return response()->json([
+        'message' => 'Verification documents submitted successfully.',
+        'kyc_status' => 'pending',
+    ]);
+}
 }

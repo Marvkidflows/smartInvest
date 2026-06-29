@@ -57,17 +57,18 @@ class TelegramService
             "Time: " . now()->format('Y-m-d H:i')
         );
     }
-
-    public function newDeposit(string $investorName, float $amount, string $reference): void
-    {
-        $this->notify(
-            "💰 <b>New Deposit Request</b>\n" .
-            "Investor: {$investorName}\n" .
-            "Amount: $" . number_format($amount, 2) . "\n" .
-            "Reference: {$reference}\n" .
-            "Time: " . now()->format('Y-m-d H:i')
-        );
-    }
+public function newDeposit(string $investorName, float $amount, string $reference): void
+{
+    $this->notify(
+        "💰 <b>New Deposit Request</b>\n\n" .
+        "👤 <b>Investor:</b> {$investorName}\n" .
+        "💵 <b>Amount:</b> $" . number_format($amount, 2) . "\n" .
+        "🔖 <b>Reference:</b> <code>{$reference}</code>\n" .
+        "🕐 <b>Time:</b> " . now()->format('Y-m-d H:i') . "\n\n" .
+        "⚡ Investor will contact you on Telegram to make payment.\n" .
+        "Confirm with them using the reference above."
+    );
+}
 
     public function depositApproved(string $investorName, float $amount): void
     {
@@ -108,4 +109,5 @@ class TelegramService
             "Reason: {$reason}"
         );
     }
+    
 }

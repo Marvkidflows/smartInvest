@@ -9,7 +9,6 @@ use App\Models\InvestmentPlan;
 use App\Services\TelegramService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class InvestorDepositController extends Controller
@@ -30,13 +29,14 @@ class InvestorDepositController extends Controller
             ->latest()
             ->get()
             ->map(fn($d) => [
-                'id'         => $d->id,
-                'amount'     => (float) $d->amount,
-                'method'     => $d->payment_method,
-                'reference'  => $d->transaction_reference,
-                'plan_name'  => $d->investmentPlan->name ?? null,
-                'status'     => $d->status,
-                'created_at' => $d->created_at->toDateString(),
+                'id'          => $d->id,
+                'amount'      => (float) $d->amount,
+                'method'      => $d->payment_method,
+                'reference'   => $d->transaction_reference,
+                'plan_name'   => $d->investmentPlan->name ?? null,
+                'status'      => $d->status,
+                'admin_notes' => $d->admin_notes,
+                'created_at'  => $d->created_at->toDateString(),
             ]);
 
         if ($request->expectsJson()) {
@@ -48,90 +48,114 @@ class InvestorDepositController extends Controller
     // GET /investor-investment/investor/deposits/create
     public function create(Request $request)
     {
-        $plans = InvestmentPlan::where('status', 'active')->get(['id', 'name', 'min_amount', 'max_amount', 'profit_percentage']);
-
-        $agent = [
-            'name'     => config('services.telegram.agent_name', 'Agent Frank'),
-            'username' => config('services.telegram.agent_username', 'AgentFrank'),
-            'link'     => 'https://t.me/' . ltrim(config('services.telegram.agent_username', 'Agentlanfrank'), '@'),
-        ];
+        $plans = InvestmentPlan::where('status', 'active')
+            ->orderBy('min_amount')
+            ->get(['id', 'name', 'min_amount', 'max_amount', 'profit_percentage', 'duration_days']);
 
         if ($request->expectsJson()) {
-            return response()->json(['plans' => $plans, 'agent' => $agent]);
+            return response()->json(['plans' => $plans, 'agent' => $this->getAgent()]);
         }
-        return view('investor.deposits.create', compact('plans', 'agent'));
+        return view('investor.deposits.create', compact('plans'));
     }
 
-    // POST /investor-investment/investor/deposits
-    public function store(Request $request)
+    // POST /investor-investment/investor/deposits/initiate
+    // Called after Stage 1 — creates deposit, generates reference, fires Telegram to agent immediately
+    public function initiate(Request $request)
     {
         $user = Auth::user();
 
         $validated = $request->validate([
-            'amount'             => ['required', 'numeric', 'min:50'],
-            'payment_method'     => ['required', 'string', 'in:bitcoin,ethereum,usdt,bank_transfer'],
             'investment_plan_id' => ['required', 'exists:investment_plans,id'],
-            'screenshot'         => ['nullable', 'image', 'max:5120'], // 5MB max
+            'amount'             => ['required', 'numeric', 'min:1'],
         ]);
 
-        $plan = InvestmentPlan::find($validated['investment_plan_id']);
-        if ($plan) {
-            if ($validated['amount'] < $plan->min_amount || ($plan->max_amount && $validated['amount'] > $plan->max_amount)) {
-                return response()->json([
-                    'message' => "Amount must be between \${$plan->min_amount} and \${$plan->max_amount} for this plan.",
-                ], 422);
-            }
+        $plan = InvestmentPlan::findOrFail($validated['investment_plan_id']);
+
+        if ($validated['amount'] < $plan->min_amount) {
+            return response()->json([
+                'message' => "Minimum amount for {$plan->name} is $" . number_format($plan->min_amount, 2),
+            ], 422);
         }
 
+        if ($plan->max_amount && $validated['amount'] > $plan->max_amount) {
+            return response()->json([
+                'message' => "Maximum amount for {$plan->name} is $" . number_format($plan->max_amount, 2),
+            ], 422);
+        }
+
+        // Generate reference immediately
         $reference = 'DEP-' . now()->year . '-' . strtoupper(Str::random(8));
 
-        $proofImagePath = null;
+        // Create deposit record right away (no payment method yet)
+        $deposit = Deposit::create([
+            'user_id'               => $user->id,
+            'investment_plan_id'    => $plan->id,
+            'amount'                => $validated['amount'],
+            'payment_method'        => 'pending', // will be updated at confirm step
+            'transaction_reference' => $reference,
+            'status'                => 'pending',
+        ]);
+
+        // Fire Telegram to agent immediately so agent knows to expect this payment
+       
+// With this:
+$name = $user->name
+     ?? $user->full_name
+     ?? trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? ''))
+     ?: 'Investor';
+
+$agent = $this->getAgent();
+$this->telegram->newDeposit($name, (float) $deposit->amount, $reference);
+        return response()->json([
+            'deposit_id' => $deposit->id,
+            'reference'  => $reference,
+            'plan_name'  => $plan->name,
+            'amount'     => (float) $deposit->amount,
+            'agent'      => $agent,
+        ], 201);
+    }
+
+    // PUT /investor-investment/investor/deposits/{deposit}/confirm
+    // Called at Stage 3 — investor confirms payment method + uploads proof
+    public function confirm(Request $request, Deposit $deposit)
+    {
+        if ($deposit->user_id !== Auth::id()) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
+        }
+
+        $validated = $request->validate([
+            'payment_method' => ['required', 'string', 'in:bitcoin,ethereum,usdt,bank_transfer'],
+            'screenshot'     => ['nullable', 'image', 'max:5120'],
+        ]);
+
+        $proofImagePath = $deposit->proof_image;
         if ($request->hasFile('screenshot')) {
             $proofImagePath = $request->file('screenshot')->store('deposit-screenshots', 'public');
         }
 
-        $deposit = Deposit::create([
-            'user_id'               => $user->id,
-            'investment_plan_id'    => $validated['investment_plan_id'],
-            'amount'                => $validated['amount'],
-            'payment_method'        => $validated['payment_method'],
-            'transaction_reference' => $reference,
-            'proof_image'           => $proofImagePath,
-            'status'                => 'pending',
+        $deposit->update([
+            'payment_method' => $validated['payment_method'],
+            'proof_image'    => $proofImagePath,
         ]);
 
-        $this->telegram->newDeposit(
-            $user->name ?? $user->full_name ?? 'Investor',
-            (float) $deposit->amount,
-            $reference
-        );
+        return response()->json([
+            'message' => 'Payment confirmed. Awaiting admin approval.',
+            'deposit' => [
+                'id'        => $deposit->id,
+                'amount'    => (float) $deposit->amount,
+                'method'    => $deposit->payment_method,
+                'reference' => $deposit->transaction_reference,
+                'plan_name' => $deposit->investmentPlan->name ?? null,
+                'status'    => $deposit->status,
+                'created_at'=> $deposit->created_at->toDateString(),
+            ],
+        ]);
+    }
 
-        $agent = [
-            'name'     => config('services.telegram.agent_name', 'Agent Frank'),
-            'username' => config('services.telegram.agent_username', 'Agentlanfrank'),
-            'link'     => 'https://t.me/' . ltrim(config('services.telegram.agent_username', 'Agentlanfrank'), '@'),
-        ];
-
-        $responseData = [
-            'id'         => $deposit->id,
-            'amount'     => (float) $deposit->amount,
-            'method'     => $deposit->payment_method,
-            'reference'  => $deposit->transaction_reference,
-            'plan_name'  => $plan->name ?? null,
-            'status'     => $deposit->status,
-            'created_at' => $deposit->created_at->toDateString(),
-        ];
-
-        if ($request->expectsJson()) {
-            return response()->json([
-                'message' => 'Deposit submitted! Contact the agent below to confirm your payment.',
-                'deposit' => $responseData,
-                'agent'   => $agent,
-            ], 201);
-        }
-
-        return redirect()->route('investor-investment.deposits.index')
-            ->with('success', 'Deposit submitted! Awaiting admin approval.');
+    // POST /investor-investment/investor/deposits (kept for backward compat)
+    public function store(Request $request)
+    {
+        return $this->initiate($request);
     }
 
     // GET /investor-investment/investor/deposits/{deposit}
@@ -146,12 +170,6 @@ class InvestorDepositController extends Controller
 
         $deposit->load('investmentPlan:id,name');
 
-        $agent = [
-            'name'     => config('services.telegram.agent_name', 'Agent Frank'),
-            'username' => config('services.telegram.agent_username', 'Agentlanfrank'),
-            'link'     => 'https://t.me/' . ltrim(config('services.telegram.agent_username', 'Agentlanfrank'), '@'),
-        ];
-
         $data = [
             'deposit' => [
                 'id'           => $deposit->id,
@@ -164,12 +182,22 @@ class InvestorDepositController extends Controller
                 'created_at'   => $deposit->created_at->toDateString(),
                 'processed_at' => optional($deposit->processed_at)->toDateString(),
             ],
-            'agent' => $agent,
+            'agent' => $this->getAgent(),
         ];
 
         if ($request->expectsJson()) {
             return response()->json($data);
         }
         return view('investor.deposits.show', $data);
+    }
+
+    protected function getAgent(): array
+    {
+        $username = config('services.telegram.agent_username', 'AgentlanFrank');
+        return [
+            'name'     => config('services.telegram.agent_name', 'AgentlanFrank'),
+            'username' => $username,
+            'link'     => 'https://t.me/' . ltrim($username, '@'),
+        ];
     }
 }

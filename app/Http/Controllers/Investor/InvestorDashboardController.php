@@ -10,6 +10,7 @@ use App\Models\Withdrawal;
 use App\Models\Announcement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class InvestorDashboardController extends Controller
 {
@@ -40,29 +41,8 @@ class InvestorDashboardController extends Controller
                 'created_at'     => $d->created_at->toDateString(),
             ]);
 
-        // ── ACTIVE INVESTMENTS ───────────────────────────────────────────────
-        $activeInvestmentList = $activeInvestments->map(function ($inv) {
-            $totalDays    = $inv->investmentPlan->duration_days
-                ?? ($inv->investmentPlan->duration_months ?? 1) * 30;
-            $remaining    = $inv->remaining_days ?? $totalDays;
-            $elapsed      = $totalDays - $remaining;
-            $progress     = $totalDays > 0 ? round(($elapsed / $totalDays) * 100) : 0;
-
-            return [
-                'id'             => $inv->id,
-                'plan_name'      => $inv->investmentPlan->name ?? 'N/A',
-                'amount'         => (float) $inv->amount,
-                'profit_percent' => (float) ($inv->investmentPlan->profit_percentage ?? 0),
-                'expected_profit'=> (float) ($inv->expected_profit ?? 0),
-                'start_date'     => optional($inv->start_date)->toDateString(),
-                'end_date'       => optional($inv->end_date)->toDateString(),
-                'days_remaining' => $remaining,
-                'total_days'     => $totalDays,
-                'days_passed'    => $elapsed,
-                'progress'       => min(100, max(0, $progress)),
-                'status'         => $inv->status,
-            ];
-        })->values();
+        // ── ACTIVE INVESTMENTS (live countdown) ───────────────────────────────
+        $activeInvestmentList = $activeInvestments->map(fn($inv) => $this->formatInvestment($inv))->values();
 
         // ── MONTHLY CHART DATA ────────────────────────────────────────────────
         $chartData = collect(range(1, 12))->map(function ($month) use ($user) {
@@ -119,5 +99,52 @@ class InvestorDashboardController extends Controller
             return response()->json($data);
         }
         return view('investor.dashboard', $data);
+    }
+
+    /**
+     * Build the investment payload with LIVE countdown calculated from end_date.
+     * Mirrors InvestorInvestmentController::formatInvestment() so both
+     * the dashboard and the investments page always show the same numbers.
+     */
+    protected function formatInvestment(InvestmentAccount $inv): array
+    {
+        $plan      = $inv->investmentPlan;
+        $totalDays = $plan?->duration_days ?? (($plan?->duration_months ?? 1) * 30);
+
+        $liveRemaining = $inv->end_date
+            ? max(0, (int) ceil(Carbon::today()->diffInDays(Carbon::parse($inv->end_date), false)))
+            : ($inv->remaining_days ?? $totalDays);
+
+        $elapsed  = max(0, $totalDays - $liveRemaining);
+        $progress = $totalDays > 0 ? round(($elapsed / $totalDays) * 100) : 0;
+
+        $isPaid = (bool) ($inv->is_paid ?? false);
+        $countdownStatus = $isPaid
+            ? 'paid'
+            : ($liveRemaining <= 0
+                ? 'matured'
+                : ($liveRemaining <= 7 ? 'maturing_soon' : 'active'));
+
+        return [
+            'id'               => $inv->id,
+            'plan_name'        => $plan->name ?? 'N/A',
+            'amount'           => (float) $inv->amount,
+            'profit_percent'   => (float) ($plan->profit_percentage ?? $plan->profit_percent ?? 0),
+            'expected_profit'  => (float) ($inv->expected_profit ?? 0),
+            'total_return'     => (float) ($inv->total_return ?? 0),
+            'start_date'       => optional($inv->start_date)->toDateString(),
+            'end_date'         => optional($inv->end_date)->toDateString(),
+            'days_remaining'   => $liveRemaining,
+            'total_days'       => $totalDays,
+            'days_passed'      => $elapsed,
+            'progress'         => min(100, max(0, $progress)),
+            'countdown_status' => $countdownStatus,
+            'is_paid'          => $isPaid,
+            'status'           => $inv->status,
+            'plan'             => [
+                'id'   => $plan->id ?? null,
+                'name' => $plan->name ?? 'N/A',
+            ],
+        ];
     }
 }

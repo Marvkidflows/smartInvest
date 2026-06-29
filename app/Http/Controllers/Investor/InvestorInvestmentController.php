@@ -20,34 +20,7 @@ class InvestorInvestmentController extends Controller
             ->with('investmentPlan')
             ->latest()
             ->get()
-            ->map(function ($inv) {
-                $totalDays = $inv->investmentPlan->duration_days
-                    ?? (($inv->investmentPlan->duration_months ?? 1) * 30);
-                $remaining = $inv->remaining_days ?? $totalDays;
-                $elapsed   = $totalDays - $remaining;
-                $progress  = $totalDays > 0 ? round(($elapsed / $totalDays) * 100) : 0;
-
-                return [
-                    'id'             => $inv->id,
-                    'plan_name'      => $inv->investmentPlan->name ?? 'N/A',
-                    'amount'         => (float) $inv->amount,
-                    'profit_percent' => (float) ($inv->investmentPlan->profit_percentage
-                                        ?? $inv->investmentPlan->profit_percent ?? 0),
-                    'expected_profit'=> (float) ($inv->expected_profit ?? 0),
-                    'start_date'     => optional($inv->start_date)->toDateString(),
-                    'end_date'       => optional($inv->end_date)->toDateString(),
-                    'days_remaining' => $remaining,
-                    'total_days'     => $totalDays,
-                    'days_passed'    => $elapsed,
-                    'progress'       => min(100, max(0, $progress)),
-                    'status'         => $inv->status,
-                    'created_at'     => $inv->created_at->toDateString(),
-                    'plan'           => [
-                        'id'   => $inv->investmentPlan->id ?? null,
-                        'name' => $inv->investmentPlan->name ?? 'N/A',
-                    ],
-                ];
-            });
+            ->map(fn($inv) => $this->formatInvestment($inv));
 
         if ($request->expectsJson()) {
             return response()->json(['investments' => $investments]);
@@ -108,7 +81,6 @@ class InvestorInvestmentController extends Controller
 
         $plan = InvestmentPlan::findOrFail($validated['plan_id']);
 
-        // Validate amount against plan limits
         if ($validated['amount'] < $plan->min_amount) {
             if ($request->expectsJson()) {
                 return response()->json([
@@ -127,7 +99,6 @@ class InvestorInvestmentController extends Controller
             return back()->withErrors(['amount' => 'Amount exceeds the maximum for this plan.']);
         }
 
-        // Check user balance
         if ($user->balance < $validated['amount']) {
             if ($request->expectsJson()) {
                 return response()->json([
@@ -142,7 +113,6 @@ class InvestorInvestmentController extends Controller
         $expectedProfit = $validated['amount'] * ($profitPercent / 100);
         $totalReturn    = $validated['amount'] + $expectedProfit;
 
-        // Create investment
         $investment = InvestmentAccount::create([
             'user_id'            => $user->id,
             'investment_plan_id' => $plan->id,
@@ -156,21 +126,20 @@ class InvestorInvestmentController extends Controller
             'remaining_days'     => $durationDays,
         ]);
 
-        // Deduct from user balance
         $user->decrement('balance', $validated['amount']);
 
         if ($request->expectsJson()) {
             return response()->json([
                 'message'    => 'Investment created successfully!',
                 'investment' => [
-                    'id'             => $investment->id,
-                    'plan_name'      => $plan->name,
-                    'amount'         => (float) $investment->amount,
-                    'profit_percent' => $profitPercent,
-                    'expected_profit'=> (float) $expectedProfit,
-                    'start_date'     => $investment->start_date->toDateString(),
-                    'end_date'       => $investment->end_date->toDateString(),
-                    'status'         => $investment->status,
+                    'id'              => $investment->id,
+                    'plan_name'       => $plan->name,
+                    'amount'          => (float) $investment->amount,
+                    'profit_percent'  => $profitPercent,
+                    'expected_profit' => (float) $expectedProfit,
+                    'start_date'      => $investment->start_date->toDateString(),
+                    'end_date'        => $investment->end_date->toDateString(),
+                    'status'          => $investment->status,
                 ],
             ], 201);
         }
@@ -182,7 +151,6 @@ class InvestorInvestmentController extends Controller
     // GET /investor-investment/investor/investments/{investmentAccount}
     public function show(Request $request, InvestmentAccount $investmentAccount)
     {
-        // Ensure investor owns this investment
         if ($investmentAccount->user_id !== Auth::id()) {
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Unauthorized.'], 403);
@@ -191,32 +159,61 @@ class InvestorInvestmentController extends Controller
         }
 
         $investmentAccount->load('investmentPlan');
-        $totalDays = $investmentAccount->investmentPlan->duration_days
-            ?? (($investmentAccount->investmentPlan->duration_months ?? 1) * 30);
-        $remaining = $investmentAccount->remaining_days ?? $totalDays;
 
-        $data = [
-            'investment' => [
-                'id'             => $investmentAccount->id,
-                'plan_name'      => $investmentAccount->investmentPlan->name ?? 'N/A',
-                'amount'         => (float) $investmentAccount->amount,
-                'profit_percent' => (float) ($investmentAccount->investmentPlan->profit_percentage ?? 0),
-                'expected_profit'=> (float) ($investmentAccount->expected_profit ?? 0),
-                'start_date'     => optional($investmentAccount->start_date)->toDateString(),
-                'end_date'       => optional($investmentAccount->end_date)->toDateString(),
-                'days_remaining' => $remaining,
-                'total_days'     => $totalDays,
-                'progress'       => $totalDays > 0
-                    ? round((($totalDays - $remaining) / $totalDays) * 100)
-                    : 0,
-                'status'         => $investmentAccount->status,
-                'plan'           => $investmentAccount->investmentPlan,
-            ],
-        ];
+        $data = ['investment' => $this->formatInvestment($investmentAccount)];
 
         if ($request->expectsJson()) {
             return response()->json($data);
         }
         return view('investor.investments.show', $data);
+    }
+
+    /**
+     * Build the investment payload with LIVE countdown calculated from end_date,
+     * rather than relying on the static remaining_days column (which is only
+     * set once at creation and otherwise only changes via admin adjustments).
+     */
+    protected function formatInvestment(InvestmentAccount $inv): array
+    {
+        $plan      = $inv->investmentPlan;
+        $totalDays = $plan?->duration_days ?? (($plan?->duration_months ?? 1) * 30);
+
+        // Live remaining days — calculated fresh from end_date every request
+        $liveRemaining = $inv->end_date
+            ? max(0, (int) ceil(Carbon::today()->diffInDays(Carbon::parse($inv->end_date), false)))
+            : ($inv->remaining_days ?? $totalDays);
+
+        $elapsed  = max(0, $totalDays - $liveRemaining);
+        $progress = $totalDays > 0 ? round(($elapsed / $totalDays) * 100) : 0;
+
+        $isPaid = (bool) ($inv->is_paid ?? false);
+        $countdownStatus = $isPaid
+            ? 'paid'
+            : ($liveRemaining <= 0
+                ? 'matured'
+                : ($liveRemaining <= 7 ? 'maturing_soon' : 'active'));
+
+        return [
+            'id'               => $inv->id,
+            'plan_name'        => $plan->name ?? 'N/A',
+            'amount'           => (float) $inv->amount,
+            'profit_percent'   => (float) ($plan->profit_percentage ?? $plan->profit_percent ?? 0),
+            'expected_profit'  => (float) ($inv->expected_profit ?? 0),
+            'total_return'     => (float) ($inv->total_return ?? 0),
+            'start_date'       => optional($inv->start_date)->toDateString(),
+            'end_date'         => optional($inv->end_date)->toDateString(),
+            'days_remaining'   => $liveRemaining,
+            'total_days'       => $totalDays,
+            'days_passed'      => $elapsed,
+            'progress'         => min(100, max(0, $progress)),
+            'countdown_status' => $countdownStatus,
+            'is_paid'          => $isPaid,
+            'status'           => $inv->status,
+            'created_at'       => $inv->created_at->toDateString(),
+            'plan'             => [
+                'id'   => $plan->id ?? null,
+                'name' => $plan->name ?? 'N/A',
+            ],
+        ];
     }
 }

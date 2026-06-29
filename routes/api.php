@@ -118,16 +118,20 @@ Route::middleware('auth:sanctum')->group(function () {
         
 Route::post('/investor/profile/kyc', [InvestorProfileController::class, 'submitKyc'])->name('profile.kyc');
  
-        Route::get('/investor/investments',                     [InvestorInvestmentController::class, 'index'])->name('investments.index');
-        Route::get('/investor/investments/plans',               [InvestorInvestmentController::class, 'plans'])->name('investments.plans');
-        Route::get('/investor/investments/create/{plan}',       [InvestorInvestmentController::class, 'create'])->name('investments.create');
-        Route::post('/investor/investments',                    [InvestorInvestmentController::class, 'store'])->name('investments.store');
-        Route::get('/investor/investments/{investmentAccount}', [InvestorInvestmentController::class, 'show'])->name('investments.show');
+      // ── Investments ──
+Route::get('/investor/investments',                     [InvestorInvestmentController::class, 'index'])->name('investments.index');
+Route::get('/investor/investments/plans',               [InvestorInvestmentController::class, 'plans'])->name('investments.plans');
+Route::get('/investor/investments/create/{plan}',       [InvestorInvestmentController::class, 'create'])->name('investments.create');
+Route::post('/investor/investments',                    [InvestorInvestmentController::class, 'store'])->name('investments.store');
+Route::get('/investor/investments/{investmentAccount}', [InvestorInvestmentController::class, 'show'])->name('investments.show');
 
-        Route::get('/investor/deposits',           [InvestorDepositController::class, 'index'])->name('deposits.index');
-        Route::get('/investor/deposits/create',    [InvestorDepositController::class, 'create'])->name('deposits.create');
-        Route::post('/investor/deposits',          [InvestorDepositController::class, 'store'])->name('deposits.store');
-        Route::get('/investor/deposits/{deposit}', [InvestorDepositController::class, 'show'])->name('deposits.show');
+// ── Deposits ──
+Route::get('/investor/deposits',                    [InvestorDepositController::class, 'index'])->name('deposits.index');
+Route::get('/investor/deposits/create',             [InvestorDepositController::class, 'create'])->name('deposits.create');
+Route::post('/investor/deposits/initiate',          [InvestorDepositController::class, 'initiate'])->name('deposits.initiate');
+Route::put('/investor/deposits/{deposit}/confirm',  [InvestorDepositController::class, 'confirm'])->name('deposits.confirm');
+Route::post('/investor/deposits',                   [InvestorDepositController::class, 'store'])->name('deposits.store'); // backward-compat alias → initiate
+Route::get('/investor/deposits/{deposit}',          [InvestorDepositController::class, 'show'])->name('deposits.show');
 
         Route::get('/investor/withdrawals',        [InvestorWithdrawalController::class, 'index'])->name('withdrawals.index');
         Route::get('/investor/withdrawals/create', [InvestorWithdrawalController::class, 'create'])->name('withdrawals.create');
@@ -137,9 +141,12 @@ Route::post('/investor/profile/kyc', [InvestorProfileController::class, 'submitK
         Route::get('/investor/withdrawal-pin/status', [WithdrawalPinController::class, 'status'])->name('withdrawal-pin.status');
         Route::post('/investor/withdrawal-pin',        [WithdrawalPinController::class, 'store'])->name('withdrawal-pin.store');
         Route::get('/investor/referrals', [InvestorReferralController::class, 'index'])->name('referrals.index');
+
+    
     });
 
     /*
+
     |----------------------------------------------------------------------
     | ADMIN ROUTES
     |----------------------------------------------------------------------
@@ -191,6 +198,12 @@ Route::post('/global/balance-bulk',       [AdminGlobalManagementController::clas
         Route::get('/investments',                        [AdminInvestmentController::class, 'index'])->name('investments.index');
         Route::get('/investments/{investment}',           [AdminInvestmentController::class, 'show'])->name('investments.show');
         Route::post('/investments/{investment}/complete', [AdminInvestmentController::class, 'complete'])->name('investments.complete');
+
+        Route::post('/investments/{investment}/countdown/extend',  [AdminInvestmentController::class, 'extendCountdown'])->name('investments.countdown.extend');
+Route::post('/investments/{investment}/countdown/reduce',  [AdminInvestmentController::class, 'reduceCountdown'])->name('investments.countdown.reduce');
+Route::post('/investments/{investment}/countdown/set-date',[AdminInvestmentController::class, 'setCountdownDate'])->name('investments.countdown.set-date');
+Route::post('/investments/{investment}/countdown/override',[AdminInvestmentController::class, 'overrideCountdown'])->name('investments.countdown.override');
+Route::get('/investments/{investment}/countdown/logs',     [AdminInvestmentController::class, 'countdownLogs'])->name('investments.countdown.logs');
 
         Route::get('/deposits',                    [AdminDepositController::class, 'index'])->name('deposits.index');
         Route::get('/deposits/{deposit}',          [AdminDepositController::class, 'show'])->name('deposits.show');

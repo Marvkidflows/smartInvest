@@ -16,7 +16,18 @@ use Illuminate\Support\Facades\DB;
 class AdminDashboardController extends Controller
 {
     public function dashboard(Request $request)
+
     {
+         try {
+        // ... all existing code ...
+    } catch (\Throwable $e) {
+        return response()->json([
+            'error'   => $e->getMessage(),
+            'file'    => $e->getFile(),
+            'line'    => $e->getLine(),
+        ], 500);
+    }
+
         // ── STATS ─────────────────────────────────────────────────────────────
         $totalInvestors      = User::where('role', 'investor')->count();
         $activeInvestors     = User::where('role', 'investor')->where('status', 'active')->count();

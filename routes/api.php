@@ -174,7 +174,7 @@ Route::get('/investor/deposits/{deposit}',          [InvestorDepositController::
         Route::post('/users/{user}/resend-otp',          [AdminEmailVerificationController::class, 'resend'])->name('users.resend-otp');
         Route::post('/users/{user}/manual-verify',       [AdminEmailVerificationController::class, 'manualVerify'])->name('users.manual-verify');
 
-    Route::post('/global/profit-adjustments', [AdminGlobalManagementController::class, 'adjustProfit'])->name('global.profit-adjust');
+     Route::post('/global/profit-adjustments', [AdminGlobalManagementController::class, 'adjustProfit'])->name('global.profit-adjust');
 Route::get('/global/profit-adjustments',  [AdminGlobalManagementController::class, 'profitAdjustmentHistory'])->name('global.profit-history');
 Route::post('/global/balance-bulk',       [AdminGlobalManagementController::class, 'bulkBalance'])->name('global.balance-bulk');
  

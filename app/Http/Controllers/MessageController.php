@@ -19,55 +19,65 @@ class MessageController extends Controller
      * Admin sees a list of ALL investors.
      * Each investor shows: last message preview + unread count.
      */
-    public function adminIndex(Request $request)
-    {
-        // Get all investors
-        $investors = User::where('role', 'investor')
-            ->latest()
-            ->get()
-            ->map(function ($investor) {
-                // Get the last message in this conversation
-                $lastMessage = Message::where('investor_id', $investor->id)
-                    ->latest()
-                    ->first();
+  public function adminIndex(Request $request)
+{
+    $investors = User::where('role', 'investor')->get();
+    $investorIds = $investors->pluck('id');
 
-                // Count messages investor sent that admin hasn't read
-                $unreadCount = Message::where('investor_id', $investor->id)
-                    ->where('initiated_by', 'investor')
-                    ->where('read_by_admin', false)
-                    ->count();
+    $allMessages = Message::whereIn('investor_id', $investorIds)
+        ->orderByDesc('created_at')
+        ->get()
+        ->groupBy('investor_id');
 
-                return [
-                    'investor' => [
-                        'id'     => $investor->id,
-                        'name'   => $investor->name ?? $investor->full_name,
-                        'email'  => $investor->email,
-                        'status' => $investor->status ?? 'active',
-                    ],
-                    'last_message'  => $lastMessage ? [
-                        'body'         => substr($lastMessage->body, 0, 80) . (strlen($lastMessage->body) > 80 ? '…' : ''),
-                        'from'         => $lastMessage->initiated_by,
-                        'created_at'   => $lastMessage->created_at->diffForHumans(),
-                    ] : null,
-                    'unread_count'  => $unreadCount,
-                    'has_messages'  => !is_null($lastMessage),
-                ];
-            });
+    $unreadCounts = Message::whereIn('investor_id', $investorIds)
+        ->where('initiated_by', 'investor')
+        ->where('read_by_admin', false)
+        ->get()
+        ->groupBy('investor_id')
+        ->map->count();
 
-        // Total unread count badge for admin
-        $totalUnread = Message::where('initiated_by', 'investor')
-            ->where('read_by_admin', false)
-            ->count();
+    $investors = $investors->map(function ($investor) use ($allMessages, $unreadCounts) {
+        $lastMessage = $allMessages->get($investor->id)?->first();
+        $unreadCount = $unreadCounts->get($investor->id, 0);
 
-        if ($request->expectsJson()) {
-            return response()->json([
-                'investors'    => $investors,
-                'total_unread' => $totalUnread,
-            ]);
-        }
+        return [
+            'investor' => [
+                'id'     => $investor->id,
+                'name'   => $investor->name ?? $investor->full_name,
+                'email'  => $investor->email,
+                'status' => $investor->status ?? 'active',
+            ],
+            'last_message' => $lastMessage ? [
+                'body'       => substr($lastMessage->body, 0, 80) . (strlen($lastMessage->body) > 80 ? '…' : ''),
+                'from'       => $lastMessage->initiated_by,
+                'created_at' => $lastMessage->created_at->diffForHumans(),
+            ] : null,
+            'unread_count' => $unreadCount,
+            'has_messages' => !is_null($lastMessage),
+            // raw timestamp used only for sorting, not sent differently to frontend
+            '_sort_time' => $lastMessage->created_at ?? $investor->created_at,
+        ];
+    })
+    ->sortByDesc('_sort_time')
+    ->values()
+    ->map(function ($item) {
+        unset($item['_sort_time']);
+        return $item;
+    });
 
-        return view('admin.messages.index', compact('investors', 'totalUnread'));
+    $totalUnread = Message::where('initiated_by', 'investor')
+        ->where('read_by_admin', false)
+        ->count();
+
+    if ($request->expectsJson()) {
+        return response()->json([
+            'investors'    => $investors,
+            'total_unread' => $totalUnread,
+        ]);
     }
+
+    return view('admin.messages.index', compact('investors', 'totalUnread'));
+}
 
     /**
      * GET /admin/messages/{investor}
@@ -324,4 +334,50 @@ class MessageController extends Controller
 
         return view('investor.messages.show', compact('message'));
     }
+    /**
+ * POST /api/public/contact-support
+ * Used by deactivated (logged-out) users to reach support without a session.
+ */
+public function publicContactSupport(Request $request)
+{
+    $validated = $request->validate([
+        'email' => ['required', 'email'],
+        'body'  => ['required', 'string', 'max:5000'],
+    ]);
+
+    $investor = User::where('email', $validated['email'])
+        ->where('role', 'investor')
+        ->first();
+
+    if (!$investor) {
+        return response()->json([
+            'success' => false,
+            'message' => 'We could not find an account with that email.',
+        ], 404);
+    }
+
+    $admin = User::where('role', 'admin')->first();
+    if (!$admin) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Support is currently unavailable.',
+        ], 503);
+    }
+
+    Message::create([
+        'sender_id'        => $investor->id,
+        'receiver_id'      => $admin->id,
+        'investor_id'      => $investor->id,
+        'subject'          => 'Account Deactivated — Support Request',
+        'body'             => $validated['body'],
+        'initiated_by'     => 'investor',
+        'read_by_admin'    => false,
+        'read_by_investor' => true,
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Your message has been sent to our support team.',
+    ]);
+}
 }

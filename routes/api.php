@@ -46,6 +46,7 @@ Route::post('/register/stage1', [RegisterController::class, 'submitStage1']);
 Route::post('/login',           [LoginController::class, 'login']);
 Route::post('/forgot-password', [PasswordResetController::class, 'forgotPassword']);
 Route::post('/reset-password', [PasswordResetController::class, 'resetPassword']);
+ Route::post('/public/contact-support', [MessageController::class, 'publicContactSupport']);
 
 /*
 |--------------------------------------------------------------------------
@@ -89,14 +90,14 @@ Route::middleware('auth:sanctum')->group(function () {
     | INVESTOR ROUTES
     |----------------------------------------------------------------------
     */
-    Route::middleware('investor')
+    Route::middleware(['investor', 'check.account'])
         ->prefix('investor-investment')
         ->name('investor-investment.')
         ->group(function () {
 
         Route::get('/dashboard', [InvestorDashboardController::class, 'dashboard'])
             ->name('dashboard');
-
+        
         Route::get('/notifications',                      [NotificationController::class, 'index'])
             ->name('notifications.index');
         Route::post('/notifications/{notification}/read', [NotificationController::class, 'markAsRead'])
@@ -111,6 +112,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/messages/create',    [MessageController::class, 'investorCreate'])->name('messages.create');
         Route::post('/messages',          [MessageController::class, 'investorStore'])->name('messages.store');
         Route::get('/messages/{message}', [MessageController::class, 'investorShow'])->name('messages.show');
+      
 
         Route::get('/investor/profile',      [InvestorProfileController::class, 'show'])->name('profile.show');
         Route::get('/investor/profile/edit', [InvestorProfileController::class, 'edit'])->name('profile.edit');
@@ -167,7 +169,11 @@ Route::get('/investor/deposits/{deposit}',          [InvestorDepositController::
         Route::put('/users/{user}',           [AdminUserController::class, 'update'])->name('users.update');
         Route::post('/users/{user}/suspend',  [AdminUserController::class, 'suspend'])->name('users.suspend');
         Route::post('/users/{user}/activate', [AdminUserController::class, 'activate'])->name('users.activate');
-        Route::post('/users/{user}/balance',  [AdminUserController::class, 'adjustBalance'])->name('users.balance');
+        Route::post('/users/{user}/balance',  [AdminUserController::class, 'adjustBalance'])->name('users.balance');     
+Route::post('/users/{user}/freeze',     [AdminUserController::class, 'freeze'])->name('users.freeze');
+Route::post('/users/{user}/unfreeze',   [AdminUserController::class, 'unfreeze'])->name('users.unfreeze');
+Route::post('/users/{user}/deactivate', [AdminUserController::class, 'deactivate'])->name('users.deactivate');
+ 
 
         // Email OTP verification — admin controls
         Route::get('/users/{user}/verification-status', [AdminEmailVerificationController::class, 'status'])->name('users.verification-status');

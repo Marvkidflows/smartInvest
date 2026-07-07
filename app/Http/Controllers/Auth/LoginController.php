@@ -36,12 +36,29 @@ class LoginController extends Controller
             ])->onlyInput('email');
         }
 
+        // ── DEACTIVATED — block login entirely ────────────────────────────────
+        if ($user->status === 'deactivated') {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'status'  => 'deactivated',
+                    'message' => 'Your account has been deactivated. Please contact support.',
+                ], 403);
+            }
+            return back()->withErrors([
+                'email' => 'Your account has been deactivated. Please contact support.',
+            ])->onlyInput('email');
+        }
+
+        // Suspended and frozen users CAN log in — the frontend handles the UI
+        // restriction, and the middleware enforces backend protection.
+
         $token = $user->createToken('auth-token')->plainTextToken;
 
         if ($request->expectsJson()) {
             return response()->json([
                 'token' => $token,
-                'user' => [
+                'user'  => [
                     'id'             => $user->id,
                     'name'           => $user->name ?? $user->full_name,
                     'email'          => $user->email,
@@ -57,7 +74,6 @@ class LoginController extends Controller
             ]);
         }
 
-        // Blade fallback (kept for completeness, though likely unused now)
         Auth::login($user);
         if ($user->role === 'admin') {
             return redirect()->route('admin.dashboard');

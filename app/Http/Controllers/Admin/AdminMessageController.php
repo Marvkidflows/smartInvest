@@ -10,30 +10,62 @@ use Illuminate\Support\Facades\Auth;
 
 class AdminMessageController extends Controller
 {
-    // GET /admin/messages
-    public function index(Request $request)
-    {
-        $messages = Message::with('user:id,name,email')
-            ->latest()
-            ->get()
-            ->map(fn($m) => [
-                'id'         => $m->id,
-                'subject'    => $m->subject ?? 'No Subject',
-                'message'    => $m->message ?? $m->body ?? '',
-                'is_read'    => (bool) ($m->read ?? $m->is_read ?? false),
-                'created_at' => $m->created_at->toDateString(),
-                'user' => [
-                    'id'    => $m->user->id ?? $m->sender_id ?? null,
-                    'name'  => $m->user->name ?? 'Investor',
-                    'email' => $m->user->email ?? '',
-                ],
-            ]);
+    
+public function adminIndex(Request $request)
+{
+    // ── One grouped query for unread counts per investor, instead of N queries ──
+    $unreadCounts = Message::where('initiated_by', 'investor')
+        ->where('read_by_admin', false)
+        ->selectRaw('investor_id, COUNT(*) as cnt')
+        ->groupBy('investor_id')
+        ->pluck('cnt', 'investor_id');
 
-        if ($request->expectsJson()) {
-            return response()->json(['messages' => $messages]);
-        }
-        return view('admin.messages.index', compact('messages'));
+    // ── One query to get the latest message per investor, instead of N queries ──
+    // MySQL-safe approach: get the max id per investor, then fetch those rows in one go.
+    $latestIds = Message::selectRaw('MAX(id) as id')
+        ->groupBy('investor_id')
+        ->pluck('id');
+
+    $latestMessages = Message::whereIn('id', $latestIds)
+        ->get()
+        ->keyBy('investor_id');
+
+    $totalUnread = Message::where('initiated_by', 'investor')
+        ->where('read_by_admin', false)
+        ->count();
+
+    $investors = User::where('role', 'investor')
+        ->latest()
+        ->get()
+        ->map(function ($investor) use ($unreadCounts, $latestMessages) {
+            $lastMessage = $latestMessages->get($investor->id);
+
+            return [
+                'investor' => [
+                    'id'     => $investor->id,
+                    'name'   => $investor->name ?? $investor->full_name,
+                    'email'  => $investor->email,
+                    'status' => $investor->status ?? 'active',
+                ],
+                'last_message' => $lastMessage ? [
+                    'body'       => substr($lastMessage->body, 0, 80) . (strlen($lastMessage->body) > 80 ? '…' : ''),
+                    'from'       => $lastMessage->initiated_by,
+                    'created_at' => $lastMessage->created_at->diffForHumans(),
+                ] : null,
+                'unread_count' => $unreadCounts->get($investor->id, 0),
+                'has_messages' => !is_null($lastMessage),
+            ];
+        });
+
+    if ($request->expectsJson()) {
+        return response()->json([
+            'investors'    => $investors,
+            'total_unread' => $totalUnread,
+        ]);
     }
+
+    return view('admin.messages.index', compact('investors', 'totalUnread'));
+}
 
     // GET /admin/messages/{message}
     public function show(Request $request, Message $message)

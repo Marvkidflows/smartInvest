@@ -26,6 +26,8 @@ use App\Http\Controllers\Admin\AdminEmailVerificationController;
 use App\Http\Controllers\Admin\AdminSectorController;
 use App\Http\Controllers\Admin\AdminGlobalManagementController;
 use App\Http\Controllers\Admin\AdminKycController;
+use App\Http\Controllers\Admin\AdminEmailController;
+use App\Http\Controllers\Investor\InvestorEmailController;
  
 // Investor
 use App\Http\Controllers\Investor\InvestorDashboardController;
@@ -112,7 +114,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/messages/create',    [MessageController::class, 'investorCreate'])->name('messages.create');
         Route::post('/messages',          [MessageController::class, 'investorStore'])->name('messages.store');
         Route::get('/messages/{message}', [MessageController::class, 'investorShow'])->name('messages.show');
-      
+        
+        
+Route::get('/emails',               [InvestorEmailController::class, 'index'])->name('emails.index');
+Route::get('/emails/{sentEmail}',   [InvestorEmailController::class, 'show'])->name('emails.show');
 
         Route::get('/investor/profile',      [InvestorProfileController::class, 'show'])->name('profile.show');
         Route::get('/investor/profile/edit', [InvestorProfileController::class, 'edit'])->name('profile.edit');
@@ -238,6 +243,58 @@ Route::post('/kyc/{user}/reject',     [AdminKycController::class, 'reject'])->na
         Route::delete('/messages/{message}',     [MessageController::class, 'adminDelete'])->name('messages.destroy');
         Route::get('/messages/{investor}',       [MessageController::class, 'adminShow'])->name('messages.show');
 
+    /*
+|--------------------------------------------------------------------------
+| EMAIL CENTER
+|--------------------------------------------------------------------------
+*/
+
+Route::prefix('email-center')->name('email-center.')->group(function () {
+
+    // Dashboard
+    Route::get('/dashboard', [AdminEmailController::class, 'dashboard'])
+        ->name('dashboard');
+
+    // Search Investors
+    Route::get('/investors/search', [AdminEmailController::class, 'searchInvestors'])
+        ->name('investors.search');
+
+    // Send Email
+    Route::post('/send', [AdminEmailController::class, 'send'])
+        ->name('send');
+
+    Route::post('/send-test', [AdminEmailController::class, 'sendTest'])
+        ->name('send-test');
+
+    // Bulk Email
+    Route::get('/bulk/count', [AdminEmailController::class, 'bulkCount'])
+        ->name('bulk.count');
+
+    Route::post('/bulk/send', [AdminEmailController::class, 'bulkSend'])
+        ->name('bulk.send');
+
+    // Templates
+    Route::get('/templates', [AdminEmailController::class, 'templatesIndex'])
+        ->name('templates.index');
+
+    Route::post('/templates', [AdminEmailController::class, 'templatesStore'])
+        ->name('templates.store');
+
+    Route::put('/templates/{template}', [AdminEmailController::class, 'templatesUpdate'])
+        ->name('templates.update');
+
+    Route::delete('/templates/{template}', [AdminEmailController::class, 'templatesDestroy'])
+        ->name('templates.destroy');
+
+    // Email Logs
+    Route::get('/logs', [AdminEmailController::class, 'logs'])
+        ->name('logs');
+
+    Route::get('/logs/{sentEmail}', [AdminEmailController::class, 'logsShow'])
+        ->name('logs.show');
+
+});
+        
         Route::resource('announcements', AdminAnnouncementController::class);
     });
 

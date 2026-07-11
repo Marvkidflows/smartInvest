@@ -254,7 +254,7 @@ Route::prefix('email-center')->name('email-center.')->group(function () {
     // Dashboard
     Route::get('/dashboard', [AdminEmailController::class, 'dashboard'])
         ->name('dashboard');
-
+    Route::get('/countries', [AdminEmailController::class, 'countries'])->name('countries');
     // Search Investors
     Route::get('/investors/search', [AdminEmailController::class, 'searchInvestors'])
         ->name('investors.search');

@@ -50,6 +50,21 @@ class LoginController extends Controller
             ])->onlyInput('email');
         }
 
+        // ── REGISTRATION INCOMPLETE — investors only; admins never go through this wizard ──
+        if ($user->role !== 'admin' && !$user->registration_completed) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success'        => false,
+                    'status'         => 'registration_incomplete',
+                    'current_stage'  => $user->registration_stage,
+                    'message'        => 'Please finish creating your account before logging in.',
+                ], 403);
+            }
+            return back()->withErrors([
+                'email' => 'Please finish creating your account before logging in.',
+            ])->onlyInput('email');
+        }
+
         // Suspended and frozen users CAN log in — the frontend handles the UI
         // restriction, and the middleware enforces backend protection.
 

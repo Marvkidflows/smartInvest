@@ -48,8 +48,7 @@ class MessageController extends Controller
                 'status' => $investor->status ?? 'active',
             ],
             'last_message' => $lastMessage ? [
-                'body'       => substr($lastMessage->body, 0, 80) . (strlen($lastMessage->body) > 80 ? '…' : ''),
-                'from'       => $lastMessage->initiated_by,
+              'body' => mb_substr($lastMessage->body, 0, 80, 'UTF-8') . (mb_strlen($lastMessage->body, 'UTF-8') > 80 ? '…' : ''),
                 'created_at' => $lastMessage->created_at->diffForHumans(),
             ] : null,
             'unread_count' => $unreadCount,

@@ -22,16 +22,11 @@ class RegisterController extends Controller
     // =========================================================================
     // STAGE 1 — Personal Info + Email + Password
     // =========================================================================
-    public function showStage1()
-    {
-        return view('auth.register-stage1');
-    }
-
     public function submitStage1(Request $request)
     {
         $validated = $request->validate([
             'full_name'    => ['required', 'string', 'max:255'],
-            'email'        => ['required', 'email', 'unique:users,email', 'max:255'],
+            'email'        => ['required', 'email', 'max:255'],
             'country_code' => ['nullable', 'string', 'max:10'],
             'phone'        => ['required', 'string', 'max:20'],
             'country'      => ['required', 'string', 'max:100'],
@@ -39,7 +34,44 @@ class RegisterController extends Controller
             'referral_code'=> ['nullable', 'string', 'max:20'],
         ]);
 
-        // Find referrer if code given
+        $existing = User::where('email', $validated['email'])->first();
+
+        // ── Email belongs to a COMPLETED account — real conflict, block it ──
+        if ($existing && $existing->registration_completed) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This email is already registered. Please log in instead.',
+            ], 422);
+        }
+
+        // ── Email belongs to an INCOMPLETE registration — resume it ──
+        if ($existing && !$existing->registration_completed) {
+            $existing->update([
+                'name'         => $validated['full_name'],
+                'full_name'    => $validated['full_name'],
+                'country_code' => $validated['country_code'] ?? null,
+                'phone'        => $validated['phone'],
+                'country'      => $validated['country'],
+                'password'     => Hash::make($validated['password']),
+            ]);
+
+            try {
+                $this->otpService->generateAndSend($existing);
+            } catch (\Exception $e) {
+                \Log::error('OTP resend failed during registration resume: '.$e->getMessage());
+            }
+
+            $token = $existing->createToken('registration')->plainTextToken;
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Welcome back! A new verification code has been sent to your email.',
+                'token'   => $token,
+                'user'    => ['id' => $existing->id, 'email' => $existing->email],
+            ]);
+        }
+
+        // ── Brand new email — create as before ──
         $referredBy = null;
         if (!empty($validated['referral_code'])) {
             $referrer = User::where('referral_code', $validated['referral_code'])->first();
@@ -72,49 +104,34 @@ class RegisterController extends Controller
             \Log::error('Telegram notification failed: '.$e->getMessage());
         }
 
-        // Send the email verification OTP right away
         try {
             $this->otpService->generateAndSend($user);
         } catch (\Exception $e) {
             \Log::error('OTP send failed during registration: '.$e->getMessage());
         }
 
-        // Issue a token so the user can authenticate through OTP + stages 2-4
         $token = $user->createToken('registration')->plainTextToken;
 
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Stage 1 complete. Verification code sent to your email.',
-                'token'   => $token,
-                'user'    => ['id' => $user->id, 'email' => $user->email],
-            ]);
-        }
-        return redirect()->route('register.verify-email')
-            ->with('success', 'Account created! Please verify your email.');
+        return response()->json([
+            'success' => true,
+            'message' => 'Stage 1 complete. Verification code sent to your email.',
+            'token'   => $token,
+            'user'    => ['id' => $user->id, 'email' => $user->email],
+        ]);
     }
 
     // =========================================================================
     // STAGE 2 — KYC / Address Details
     // =========================================================================
-    public function showStage2()
-    {
-        return view('auth.register-stage2');
-    }
-
     public function submitStage2(Request $request)
     {
         $user = $request->user();
 
         if (!$user->email_verified_at) {
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Please verify your email before continuing.',
-                ], 403);
-            }
-            return redirect()->route('register.verify-email')
-                ->withErrors(['error' => 'Please verify your email first.']);
+            return response()->json([
+                'success' => false,
+                'message' => 'Please verify your email before continuing.',
+            ], 403);
         }
 
         $validated = $request->validate([
@@ -136,20 +153,12 @@ class RegisterController extends Controller
             'registration_stage'  => 2,
         ]);
 
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'Stage 2 complete.']);
-        }
-        return redirect()->route('register.stage3');
+        return response()->json(['success' => true, 'message' => 'Stage 2 complete.']);
     }
 
     // =========================================================================
     // STAGE 3 — Investor Suitability Profile
     // =========================================================================
-    public function showStage3()
-    {
-        return view('auth.register-stage3');
-    }
-
     public function submitStage3(Request $request)
     {
         $user = $request->user();
@@ -173,20 +182,12 @@ class RegisterController extends Controller
             'registration_stage'    => 3,
         ]);
 
-        if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'message' => 'Stage 3 complete.']);
-        }
-        return redirect()->route('register.stage4');
+        return response()->json(['success' => true, 'message' => 'Stage 3 complete.']);
     }
 
     // =========================================================================
     // STAGE 4 — Security Setup / Final Step
     // =========================================================================
-    public function showStage4()
-    {
-        return view('auth.register-stage4');
-    }
-
     public function submitStage4(Request $request)
     {
         $user = $request->user();
@@ -205,22 +206,17 @@ class RegisterController extends Controller
         $user->registration_completed = true;
         $user->save();
 
-        if ($request->expectsJson()) {
-            return response()->json([
-                'user' => [
-                    'id'            => $user->id,
-                    'name'          => $user->name ?? $user->full_name,
-                    'email'         => $user->email,
-                    'role'          => $user->role,
-                    'balance'       => (float) ($user->balance ?? 0),
-                    'referral_code' => $user->referral_code,
-                    'created_at'    => $user->created_at,
-                ],
-                'message' => 'Registration complete! Welcome to Smart System Investment.',
-            ], 201);
-        }
-
-        return redirect()->route('investor-investment.dashboard')
-            ->with('success', 'Registration complete! Welcome.');
+        return response()->json([
+            'user' => [
+                'id'            => $user->id,
+                'name'          => $user->name ?? $user->full_name,
+                'email'         => $user->email,
+                'role'          => $user->role,
+                'balance'       => (float) ($user->balance ?? 0),
+                'referral_code' => $user->referral_code,
+                'created_at'    => $user->created_at,
+            ],
+            'message' => 'Registration complete! Welcome to Smart System Investment.',
+        ], 201);
     }
 }

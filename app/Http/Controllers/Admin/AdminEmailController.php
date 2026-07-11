@@ -187,7 +187,9 @@ class AdminEmailController extends Controller
     public function bulkCount(Request $request)
     {
         return response()->json(['count' => $this->resolveBulkQuery($request)->count()]);
-    }// POST /admin/email-center/bulk/send
+    }
+
+    // POST /admin/email-center/bulk/send
     public function bulkSend(Request $request)
     {
         $validated = $request->validate([
@@ -212,33 +214,25 @@ class AdminEmailController extends Controller
             ], 422);
         }
 
-        $admin = $request->user();
-        $batchId = (string) \Illuminate\Support\Str::uuid();
+        $batchId = (string) Str::uuid();
+        $sent = 0;
+        $failed = 0;
 
         foreach ($recipients as $investor) {
-            $sentEmail = SentEmail::create([
-                'batch_id'        => $batchId,
-                'admin_id'        => $admin->id,
-                'investor_id'     => $investor->id,
-                'recipient_name'  => $investor->name ?? $investor->full_name,
-                'recipient_email' => $investor->email,
-                'subject'         => $validated['subject'],
-                'body_html'       => $validated['body_html'],
-                'status'          => 'queued',
-            ]);
-
-            // Dispatched — actually queued if QUEUE_CONNECTION=database, or runs
-            // immediately (still safely, one at a time) if still on sync.
-            \App\Jobs\SendBulkEmailJob::dispatch($sentEmail->id);
+            $result = $this->dispatchEmail($request, $investor, $validated['subject'], $validated['body_html'], $batchId);
+            $result['success'] ? $sent++ : $failed++;
         }
 
         return response()->json([
             'success'  => true,
-            'message'  => "Bulk email queued for {$recipients->count()} investor(s). Delivery status will update in the Logs tab shortly.",
+            'message'  => "Bulk email complete: {$sent} sent, {$failed} failed.",
             'batch_id' => $batchId,
-            'count'    => $recipients->count(),
+            'sent'     => $sent,
+            'failed'   => $failed,
         ]);
-    }    protected function resolveBulkQuery(Request $request)
+    }
+
+    protected function resolveBulkQuery(Request $request)
     {
         $query = User::where('role', 'investor');
 
@@ -259,6 +253,19 @@ class AdminEmailController extends Controller
         }
 
         return $query;
+    }
+
+    // GET /admin/email-center/countries — distinct list for the Bulk filter dropdown
+    public function countries()
+    {
+        $countries = User::where('role', 'investor')
+            ->whereNotNull('country')
+            ->where('country', '!=', '')
+            ->distinct()
+            ->orderBy('country')
+            ->pluck('country');
+
+        return response()->json(['countries' => $countries]);
     }
 
     // =========================================================================
